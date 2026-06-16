@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g., v0, v0.1)"
+        type: string
+        required: true
+      model_type:
+        description: "Model type to release"
+        type: choice
+        options: [base, instruct, both]
+        default: both
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          pip install -r requirements/deployment.txt
+          pip install -e .
+      - name: Push Base Model
+        if: inputs.model_type == 'base' || inputs.model_type == 'both'
+        run: |
+          python -m src.scripts.push_to_hf \
+            --model-path training/cpt/final \
+            --repo-id baligh/Baligh-1.5B-${{ inputs.version }}-base \
+            --token ${{ secrets.HF_TOKEN }}
+      - name: Push Instruct Model
+        if: inputs.model_type == 'instruct' || inputs.model_type == 'both'
+        run: |
+          python -m src.scripts.push_to_hf \
+            --model-path training/sft/final \
+            --repo-id baligh/Baligh-1.5B-${{ inputs.version }}-instruct \
+            --token ${{ secrets.HF_TOKEN }}
+      - name: Generate Model Cards
+        run: |
+          python -m src.scripts.generate_model_card \
+            --output release/baligh-1.5b-${{ inputs.version }}-base/README.md \
+            --mmlu-score TBD --cidar-rouge TBD --islamic-rouge TBD --perplexity TBD
+          python -m src.scripts.generate_model_card \
+            --output release/baligh-1.5b-${{ inputs.version }}-instruct/README.md \
+            --mmlu-score TBD --cidar-rouge TBD --islamic-rouge TBD --perplexity TBD
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ inputs.version }}
+          name: Baligh-1.5B ${{ inputs.version }}
+          body: |
+            Release of Baligh-1.5B ${{ inputs.version }}
+            
+            Models available on Hugging Face:
+            - baligh/Baligh-1.5B-${{ inputs.version }}-base
+            - baligh/Baligh-1.5B-${{ inputs.version }}-instruct

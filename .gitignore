@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.venv/
+venv/
+env/
+ENV/
+
+# Build
+build/
+dist/
+*.egg-info/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Data (large files)
+data/raw/
+data/clean/
+data/train_ready/
+training/cpt/
+training/sft/
+training/logs/
+eval/results/
+eval/reports/
+release/
+
+# Model weights
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.gguf
+*.awq
+*.gptq
+
+# Checkpoints
+checkpoint-*/
+
+# Logs
+*.log
+wandb/
+tensorboard/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Cache
+.cache/
+.huggingface/

@@ -1,0 +1,17 @@
+# Evaluation requirements for Baligh-1.5B v0
+-r base.txt
+
+# Evaluation metrics
+evaluate>=0.4.3
+rouge-score>=0.1.2
+bert-score>=0.3.13
+sacrebleu>=2.4.0
+nltk>=3.8.1
+
+# Arabic text processing
+arabic-reshaper>=3.0.0
+python-bidi>=0.4.2
+
+# Additional evaluation tools
+scipy>=1.13.0
+scikit-learn>=1.5.0

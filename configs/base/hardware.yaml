@@ -1,0 +1,17 @@
+hardware:
+  min_gpu_vram_gb: 8
+  recommended_gpu_vram_gb: 12
+  cuda_version: 12.1
+  python_version: 3.11
+  ram_gb: 16
+  disk_gb: 50
+  system: linux
+training:
+  cpt:
+    estimated_hours_colab_t4: 2
+    estimated_hours_a100_40gb: 8
+    estimated_hours_a100_80gb: 4
+  sft:
+    estimated_hours_colab_t4: 1
+    estimated_hours_a100_40gb: 4
+    estimated_hours_a100_80gb: 2

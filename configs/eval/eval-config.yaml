@@ -1,0 +1,23 @@
+eval:
+  eval_datasets:
+    - mmlu_arabic
+    - cidar_eval
+    - cidar_mcq
+    - mr_tydi_arabic
+    - islamic_qa_custom
+  max_new_tokens: 512
+  temperature: 0.7
+  top_p: 0.9
+  top_k: 50
+  repetition_penalty: 1.1
+  do_sample: true
+  num_beams: 1
+  perplexity_batch_size: 8
+  perplexity_stride: 512
+  human_eval_samples: 100
+  human_eval_rubric:
+    correctness: 1-5: Factual accuracy of the response
+    clarity: 1-5: Clarity and readability of Arabic
+    arabic_quality: 1-5: Formal Arabic quality (fusha)
+    usefulness: 1-5: Helpfulness for the user query
+    faithfulness: 1-5: Faithfulness to source knowledge

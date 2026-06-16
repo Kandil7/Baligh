@@ -1,0 +1,11 @@
+# Deployment requirements for Baligh-1.5B v0
+-r base.txt
+
+# API server
+fastapi>=0.115.0
+uvicorn>=0.30.0
+pydantic>=2.9.0
+
+# Inference optimization
+optimum>=1.22.0
+auto-gptq>=0.7.1

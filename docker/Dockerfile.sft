@@ -1,0 +1,30 @@
+FROM nvidia/cuda:12.1-devel-ubuntu22.04
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    CUDA_HOME=/usr/local/cuda \
+    PATH=/usr/local/cuda/bin:${PATH}
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 python3.11-dev python3.11-venv \
+    git curl wget build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN ln -sf /usr/bin/python3.11 /usr/bin/python && \
+    ln -sf /usr/bin/python3.11 /usr/bin/python3
+
+RUN python -m pip install --upgrade pip setuptools wheel
+
+WORKDIR /workspace
+
+COPY requirements/training.txt requirements/
+RUN pip install -r requirements/training.txt
+
+COPY . .
+RUN pip install -e .
+
+ENV WANDB_MODE=online
+ENV HF_HOME=/workspace/.cache/huggingface
+
+CMD ["python", "-m", "src.scripts.run_sft", "--help"]

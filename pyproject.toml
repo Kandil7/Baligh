@@ -1,0 +1,212 @@
+[project]
+name = "baligh"
+version = "0.1.0"
+description = "Baligh-1.5B: Arabic-first LLM with Islamic knowledge specialization"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Baligh Team", email = "team@baligh.ai"}
+]
+keywords = [
+    "llm",
+    "arabic",
+    "islamic",
+    "qwen2.5",
+    "continued-pretraining",
+    "instruction-tuning",
+    "unsloth",
+    "qlora"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "torch>=2.5.1",
+    "transformers>=4.48.0",
+    "accelerate>=0.37.0",
+    "peft>=0.14.0",
+    "trl>=0.11.0",
+    "datasets>=2.21.0",
+    "huggingface-hub>=0.26.0",
+    "unsloth @ git+https://github.com/unslothai/unsloth.git",
+    "bitsandbytes>=0.44.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.5.0",
+    "pyyaml>=6.0",
+    "rich>=13.7.0",
+    "loguru>=0.7.0",
+    "wandb>=0.18.0",
+    "tensorboard>=2.17.0",
+    "numpy>=1.26.0",
+    "pandas>=2.2.0",
+    "pyarrow>=16.0.0",
+    "tqdm>=4.66.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-cov>=5.0.0",
+    "pytest-xdist>=3.5.0",
+    "pytest-mock>=3.14.0",
+    "ruff>=0.6.0",
+    "black>=24.10.0",
+    "mypy>=1.11.0",
+    "pyright>=1.1.380",
+    "pre-commit>=3.8.0",
+    "isort>=5.13.0",
+]
+training = [
+    "deepspeed>=0.15.0",
+    "flash-attn>=2.6.0",
+    "xformers>=0.0.28",
+]
+eval = [
+    "evaluate>=0.4.3",
+    "rouge-score>=0.1.2",
+    "bert-score>=0.3.13",
+    "sacrebleu>=2.4.0",
+    "nltk>=3.8.1",
+    "arabic-reshaper>=3.0.0",
+    "python-bidi>=0.4.2",
+]
+deployment = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "pydantic>=2.9.0",
+]
+docs = [
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.5.0",
+    "mkdocstrings[python]>=0.26.0",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | training
+  | eval
+  | release
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "T20", # flake8-print
+    "SIM", # flake8-simplify
+    "ARG", # flake8-unused-arguments
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not use mutable data structures for defaults
+    "C408",  # do not use list comprehension for side effects
+]
+per-file-ignores = {
+    "tests/*": ["S101", "S106"],
+    "src/scripts/*": ["T201"],
+    "src/notebooks/*": ["T201", "E501"],
+}
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+strict_optional = true
+ignore_missing_imports = false
+namespace_packages = true
+explicit_package_bases = true
+mypy_path = "src"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src/baligh",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-fail-under=80",
+    "-v",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow tests",
+    "gpu: Tests requiring GPU",
+]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+src_paths = ["src"]
+
+[tool.coverage.run]
+source = ["src/baligh"]
+omit = [
+    "*/tests/*",
+    "*/scripts/*",
+    "*/notebooks/*",
+    "*/__main__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
+[build-system]
+requires = ["setuptools>=70.0.0", "wheel"]
+build-backend = "setuptools.build_meta"

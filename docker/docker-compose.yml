@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  cpt-training:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.cpt
+    runtime: nvidia
+    environment:
+      - WANDB_API_KEY=${WANDB_API_KEY}
+      - HF_TOKEN=${HF_TOKEN}
+    volumes:
+      - ../data:/workspace/data
+      - ../training:/workspace/training
+      - ../configs:/workspace/configs
+    command: ["--data-dir", "/workspace/data/train_ready/cpt", "--output-dir", "/workspace/training/cpt"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  sft-training:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sft
+    runtime: nvidia
+    environment:
+      - WANDB_API_KEY=${WANDB_API_KEY}
+      - HF_TOKEN=${HF_TOKEN}
+    volumes:
+      - ../data:/workspace/data
+      - ../training:/workspace/training
+      - ../configs:/workspace/configs
+    command: ["--data-dir", "/workspace/data/train_ready/sft", "--output-dir", "/workspace/training/sft"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  evaluation:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.eval
+    runtime: nvidia
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+    volumes:
+      - ../training:/workspace/training
+      - ../eval:/workspace/eval
+    command: ["--model-path", "/workspace/training/sft/final", "--output-dir", "/workspace/eval/results"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

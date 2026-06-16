@@ -1,0 +1,42 @@
+name: SFT Training
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "SFT Stage"
+        type: choice
+        options: [stage1, stage2]
+        default: stage1
+      base_model:
+        description: "Path to base model (after CPT)"
+        type: string
+        default: "training/cpt/final"
+      resume:
+        description: "Resume from checkpoint"
+        type: boolean
+        default: false
+
+jobs:
+  sft-training:
+    runs-on: self-hosted
+    env:
+      WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          pip install -r requirements/training.txt
+          pip install -e .
+      - name: Run SFT Training
+        run: |
+          python -m src.scripts.run_sft \
+            --data-dir data/train_ready/sft \
+            --output-dir training/sft \
+            --eval-data data/train_ready/sft_eval \
+            --base-model ${{ inputs.base_model }}

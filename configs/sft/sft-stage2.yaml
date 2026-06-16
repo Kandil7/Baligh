@@ -1,0 +1,28 @@
+sft:
+  # Stage 2: Optimized SFT with hard cases
+  dataset_mix:
+    cidar: 0.35
+    evol_instruct_arabic: 0.3
+    gazelle: 0.1
+    summarization: 0.1
+    islamic_qa: 0.15
+  max_steps: 10000
+  num_train_epochs: 2.0
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 4
+  learning_rate: 5e-5
+  weight_decay: 0.01
+  warmup_steps: 500
+  lr_scheduler_type: cosine
+  max_grad_norm: 1.0
+  optim: adamw_torch_fused
+  logging_steps: 5
+  save_steps: 250
+  eval_steps: 250
+  evaluation_strategy: steps
+  load_best_model_at_end: true
+  metric_for_best_model: eval_loss
+  greater_is_better: false
+  dataloader_num_workers: 4
+  packing: false
+  response_only_loss: true

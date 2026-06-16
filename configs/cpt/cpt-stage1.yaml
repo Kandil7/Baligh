@@ -1,0 +1,22 @@
+cpt:
+  # Stage 1: Quick proof of pipeline
+  dataset_mix:
+    arabicweb24: 0.7
+    arabictext_large: 0.2
+    arabic_pile: 0.1
+  islamic_cycle: false
+  max_steps: 1000
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 4
+  learning_rate: 2e-4
+  weight_decay: 0.01
+  warmup_steps: 100
+  lr_scheduler_type: cosine
+  max_grad_norm: 1.0
+  optim: adamw_torch_fused
+  logging_steps: 10
+  save_steps: 100
+  eval_steps: 100
+  evaluation_strategy: steps
+  dataloader_num_workers: 4
+  packing: true
