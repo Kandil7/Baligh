@@ -11,7 +11,12 @@ on:
         description: "Model type to release"
         type: choice
         options: [base, instruct, both]
-        default: both
+        default: instruct
+      repo_id:
+        description: "Target HF repo ID"
+        type: string
+        default: "Kandil7/Baligh-1.5B"
+        required: true
 
 jobs:
   release:
@@ -28,25 +33,25 @@ jobs:
         run: |
           pip install -r requirements/deployment.txt
           pip install -e .
-      - name: Push Base Model
-        if: inputs.model_type == 'base' || inputs.model_type == 'both'
-        run: |
-          python -m src.scripts.push_to_hf \
-            --model-path training/cpt/final \
-            --repo-id baligh/Baligh-1.5B-${{ inputs.version }}-base \
-            --token ${{ secrets.HF_TOKEN }}
       - name: Push Instruct Model
         if: inputs.model_type == 'instruct' || inputs.model_type == 'both'
         run: |
           python -m src.scripts.push_to_hf \
             --model-path training/sft/final \
-            --repo-id baligh/Baligh-1.5B-${{ inputs.version }}-instruct \
-            --token ${{ secrets.HF_TOKEN }}
-      - name: Generate Model Cards
+            --repo-id ${{ inputs.repo_id }} \
+            --token ${{ secrets.HF_TOKEN }} \
+            --commit-message "Release ${{ inputs.version }}: Baligh-1.5B instruct model"
+      - name: Push Base Model (CPT)
+        if: inputs.model_type == 'base' || inputs.model_type == 'both'
         run: |
-          python -m src.scripts.generate_model_card \
-            --output release/baligh-1.5b-${{ inputs.version }}-base/README.md \
-            --mmlu-score TBD --cidar-rouge TBD --islamic-rouge TBD --perplexity TBD
+          python -m src.scripts.push_to_hf \
+            --model-path training/cpt/final \
+            --repo-id ${{ inputs.repo_id }}-base \
+            --token ${{ secrets.HF_TOKEN }} \
+            --commit-message "Release ${{ inputs.version }}: Baligh-1.5B base model"
+      - name: Generate Model Card
+        if: inputs.model_type == 'instruct' || inputs.model_type == 'both'
+        run: |
           python -m src.scripts.generate_model_card \
             --output release/baligh-1.5b-${{ inputs.version }}-instruct/README.md \
             --mmlu-score TBD --cidar-rouge TBD --islamic-rouge TBD --perplexity TBD
@@ -59,5 +64,5 @@ jobs:
             Release of Baligh-1.5B ${{ inputs.version }}
             
             Models available on Hugging Face:
-            - baligh/Baligh-1.5B-${{ inputs.version }}-base
-            - baligh/Baligh-1.5B-${{ inputs.version }}-instruct
+            - ${{ inputs.repo_id }}
+            ${{ inputs.model_type == 'both' && '- ' + inputs.repo_id + '-base' || '' }}
