@@ -1,5 +1,5 @@
 cpt:
-  # Stage 2: Full CPT run
+  # Stage 2: Full CPT run 
   dataset_mix:
     arabicweb24: 0.7
     arabictext_large: 0.2
@@ -11,12 +11,12 @@ cpt:
   learning_rate: 2e-4
   weight_decay: 0.01
   warmup_steps: 1000
-  lr_scheduler_type: cosine
+  lr_scheduler_type: "cosine"
   max_grad_norm: 1.0
-  optim: adamw_torch_fused
+  optim: "adamw_torch_fused"
   logging_steps: 10
   save_steps: 500
   eval_steps: 500
-  evaluation_strategy: steps
+  evaluation_strategy: "steps"
   dataloader_num_workers: 4
   packing: true

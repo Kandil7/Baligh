@@ -13,15 +13,15 @@ sft:
   learning_rate: 5e-5
   weight_decay: 0.01
   warmup_steps: 500
-  lr_scheduler_type: cosine
+  lr_scheduler_type: "cosine"
   max_grad_norm: 1.0
-  optim: adamw_torch_fused
+  optim: "adamw_torch_fused"
   logging_steps: 5
   save_steps: 250
   eval_steps: 250
-  evaluation_strategy: steps
+  evaluation_strategy: "steps"
   load_best_model_at_end: true
-  metric_for_best_model: eval_loss
+  metric_for_best_model: "eval_loss"
   greater_is_better: false
   dataloader_num_workers: 4
   packing: false

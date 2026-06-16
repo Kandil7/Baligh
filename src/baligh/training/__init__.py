@@ -1,5 +1,4 @@
 """Training package for Baligh-1.5B v0."""
-
 from baligh.training.cpt_trainer import CPTTrainer, train_cpt
 from baligh.training.sft_trainer import SFTTrainer, train_sft
 from baligh.training.lora_config import create_lora_config, create_quantization_config

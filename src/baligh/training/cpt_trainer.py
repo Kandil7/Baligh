@@ -48,6 +48,12 @@ class CPTTrainer:
         
         logger.info('CPTTrainer initialized')
         log_memory_stats(prefix='After trainer init')
+    @classmethod
+    def from_config(cls, config_dict: dict, **kwargs):
+        """Create trainer from config dictionary."""
+        from baligh.config import CPTConfig
+        config = CPTConfig(**config_dict.get("cpt", {}))
+        return cls(config=config, **kwargs)
     
     def _setup_model(self):
         model = load_base_model(
@@ -132,6 +138,9 @@ class CPTTrainer:
         self.tokenizer.save_pretrained(str(save_path))
         logger.info('Model saved')
 
-def train_cpt(train_dataset, eval_dataset=None, output_dir=None, resume_from_checkpoint=None):
-    trainer = CPTTrainer(train_dataset=train_dataset, eval_dataset=eval_dataset, output_dir=output_dir)
+def train_cpt(train_dataset, eval_dataset=None, output_dir=None, resume_from_checkpoint=None, config=None):
+    if config:
+        trainer = CPTTrainer.from_config(config, train_dataset=train_dataset, eval_dataset=eval_dataset, output_dir=output_dir)
+    else:
+        trainer = CPTTrainer(train_dataset=train_dataset, eval_dataset=eval_dataset, output_dir=output_dir)
     return trainer.train(resume_from_checkpoint=resume_from_checkpoint)
