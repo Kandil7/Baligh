@@ -1,5 +1,13 @@
 # Baligh-1.5B v0
 
+<p align="center">
+  <img src="docs/assets/baligh-logo.png" alt="Baligh Logo" width="400">
+</p>
+
+<p align="center">
+  <strong>الفصاحية والذكاء</strong> — Fluency and Intelligence
+</p>
+
 Arabic-first LLM with Islamic knowledge specialization, built on Qwen2.5-1.5B Base.
 
 ## Overview
