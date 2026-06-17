@@ -136,6 +136,8 @@ ignore = [
 "tests/*" = ["S101", "S106"]
 "src/scripts/*" = ["T201"]
 "src/notebooks/*" = ["T201", "E501"]
+"src/baligh/training/callbacks.py" = ["ARG002"]
+"src/baligh/training/sft_trainer.py" = ["ARG001"]
 
 [tool.ruff.format]
 quote-style = "double"

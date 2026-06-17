@@ -10,30 +10,47 @@ from baligh.config import get_config, get_cpt_config, get_model_config
 from baligh.data.formatter import get_cpt_formatter
 from baligh.models.loader import apply_lora, load_base_model
 from baligh.models.tokenizer import get_tokenizer
+from baligh.training.checkpoint import CheckpointManager
 from baligh.utils.logging import get_logger
 from baligh.utils.memory import log_memory_stats
 from baligh.utils.seeding import set_seed
 
 logger = get_logger(__name__)
 
+
 @dataclass
 class CPTTrainingState:
     global_step: int = 0
     epoch: float = 0.0
-    best_loss: float = float('inf')
+    best_loss: float = float("inf")
+
 
 class CPTTrainer:
-    def __init__(self, config=None, model=None, tokenizer=None, train_dataset=None, eval_dataset=None, output_dir=None):
+    def __init__(
+        self,
+        config=None,
+        model=None,
+        tokenizer=None,
+        train_dataset=None,
+        eval_dataset=None,
+        output_dir=None,
+    ):
         self.config = config or get_cpt_config()
         self.model_config = get_model_config()
         self.base_config = get_config()
-        self.output_dir = output_dir or self.base_config.output_dir / 'cpt'
+        self.output_dir = output_dir or self.base_config.output_dir / "cpt"
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         set_seed(self.base_config.seed)
 
-        self.tokenizer = tokenizer or get_tokenizer(self.model_config.tokenizer_name, self.model_config.max_seq_length)
-        self.formatter = get_cpt_formatter(self.model_config.tokenizer_name, self.model_config.max_seq_length, packing=self.config.packing)
+        self.tokenizer = tokenizer or get_tokenizer(
+            self.model_config.tokenizer_name, self.model_config.max_seq_length
+        )
+        self.formatter = get_cpt_formatter(
+            self.model_config.tokenizer_name,
+            self.model_config.max_seq_length,
+            packing=self.config.packing,
+        )
 
         if model is None:
             self.model = self._setup_model()
@@ -43,15 +60,23 @@ class CPTTrainer:
         self.train_dataset = train_dataset
         self.eval_dataset = eval_dataset
 
+        self.checkpoint_manager = CheckpointManager(
+            self.output_dir, keep_last_n=self.config.save_total_limit
+        )
+
         self.training_args = self._create_training_args()
         self.trainer = self._create_trainer()
 
-        logger.info('CPTTrainer initialized')
-        log_memory_stats(prefix='After trainer init')
+        self.checkpoint_manager.install_signal_handler(self.trainer)
+
+        logger.info("CPTTrainer initialized")
+        log_memory_stats(prefix="After trainer init")
+
     @classmethod
     def from_config(cls, config_dict: dict, **kwargs):
         """Create trainer from config dictionary."""
         from baligh.config import CPTConfig
+
         config = CPTConfig(**config_dict.get("cpt", {}))
         return cls(config=config, **kwargs)
 
@@ -60,7 +85,11 @@ class CPTTrainer:
             model_name=self.model_config.unsloth_model_name,
             load_in_4bit=self.model_config.load_in_4bit,
             load_in_8bit=self.model_config.load_in_8bit,
-            torch_dtype=torch.bfloat16 if self.model_config.bnb_4bit_compute_dtype == 'bfloat16' else torch.float16,
+            torch_dtype=(
+                torch.bfloat16
+                if self.model_config.bnb_4bit_compute_dtype == "bfloat16"
+                else torch.float16
+            ),
             attn_implementation=self.model_config.attn_implementation,
             use_cache=False,
         )
@@ -90,18 +119,22 @@ class CPTTrainer:
             eval_steps=self.config.eval_steps,
             evaluation_strategy=self.config.evaluation_strategy,  # type: ignore[call-arg]
             load_best_model_at_end=True,
-            metric_for_best_model='eval_loss',
+            metric_for_best_model="eval_loss",
             greater_is_better=False,
             dataloader_num_workers=self.config.dataloader_num_workers,
             dataloader_pin_memory=self.config.dataloader_pin_memory,
             dataloader_drop_last=self.config.dataloader_drop_last,
             remove_unused_columns=False,
-            report_to=['wandb', 'tensorboard'] if self.base_config.wandb_project else ['tensorboard'],
-            run_name='baligh-cpt',
+            report_to=(
+                ["wandb", "tensorboard"]
+                if self.base_config.wandb_project
+                else ["tensorboard"]
+            ),
+            run_name="baligh-cpt",
             seed=self.base_config.seed,
             data_seed=self.base_config.seed,
-            bf16=self.base_config.mixed_precision == 'bf16',
-            fp16=self.base_config.mixed_precision == 'fp16',
+            bf16=self.base_config.mixed_precision == "bf16",
+            fp16=self.base_config.mixed_precision == "fp16",
             gradient_checkpointing=True,
             ddp_find_unused_parameters=False,
         )
@@ -119,28 +152,47 @@ class CPTTrainer:
         )
 
     def train(self, resume_from_checkpoint=None):
-        logger.info('Starting CPT training')
-        log_memory_stats(prefix='Before training')
+        logger.info("Starting CPT training")
+        log_memory_stats(prefix="Before training")
 
-        result = self.trainer.train(resume_from_checkpoint=resume_from_checkpoint)
+        try:
+            result = self.trainer.train(resume_from_checkpoint=resume_from_checkpoint)
+        finally:
+            self.checkpoint_manager.uninstall_signal_handler()
 
-        log_memory_stats(prefix='After training')
-        logger.info('Training completed: %s' % result)
+        log_memory_stats(prefix="After training")
+        logger.info(f"Training completed: {result}")
 
         self.save_model()
         return result
 
     def save_model(self, path=None):
-        save_path = path or self.output_dir / 'final'
+        save_path = path or self.output_dir / "final"
         save_path.mkdir(parents=True, exist_ok=True)
-        logger.info('Saving model to %s' % save_path)
+        logger.info(f"Saving model to {save_path}")
         self.trainer.save_model(str(save_path))
         self.tokenizer.save_pretrained(str(save_path))  # type: ignore[union-attr]
-        logger.info('Model saved')
+        logger.info("Model saved")
 
-def train_cpt(train_dataset, eval_dataset=None, output_dir=None, resume_from_checkpoint=None, config=None):
+
+def train_cpt(
+    train_dataset,
+    eval_dataset=None,
+    output_dir=None,
+    resume_from_checkpoint=None,
+    config=None,
+):
     if config:
-        trainer = CPTTrainer.from_config(config, train_dataset=train_dataset, eval_dataset=eval_dataset, output_dir=output_dir)
+        trainer = CPTTrainer.from_config(
+            config,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            output_dir=output_dir,
+        )
     else:
-        trainer = CPTTrainer(train_dataset=train_dataset, eval_dataset=eval_dataset, output_dir=output_dir)
+        trainer = CPTTrainer(
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            output_dir=output_dir,
+        )
     return trainer.train(resume_from_checkpoint=resume_from_checkpoint)
