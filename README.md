@@ -92,6 +92,26 @@ chat = ChatBot("training/sft/final")
 response = chat.chat("اكتب لي قصيدة قصيرة عن القدس")
 ```
 
+## Google Colab (Free GPU)
+
+Run the full pipeline on Google Colab with free T4 GPUs:
+
+```bash
+# 1. Open any notebook in colab_cli/ folder in Google Colab
+# 2. Run cells sequentially
+
+# Available notebooks:
+# - colab_cpt_hf.ipynb      # CPT training only
+# - colab_sft_hf.ipynb      # SFT training only
+# - colab_eval_hf.ipynb     # Evaluation only
+# - colab_full_pipeline_hf.ipynb  # Complete pipeline (recommended)
+```
+
+Or use the CLI runner:
+```bash
+python -m colab_cli.run_colab --notebook full --repo Kandil7/Baligh-1.5B
+```
+
 ## Docker
 
 ### Build Images
@@ -143,11 +163,74 @@ Benchmarks:
 - **Arabic Perplexity** - Language modeling quality
 - **Human evaluation** - 1-5 rubric (correctness, clarity, Arabic quality, usefulness, faithfulness)
 
-## Release Artifacts
+## Release Workflow
 
-- **Base model**: After CPT
-- **Instruct model**: After SFT
-- **Quantized variants**: GGUF, AWQ, GPTQ
+### Model Artifacts (HF Hub: `Kandil7/Baligh-1.5B`)
+
+| Path | Description |
+|------|-------------|
+| `cpt/` | CPT checkpoint (LoRA adapter) |
+| `sft/` | SFT checkpoint (LoRA adapter) |
+| `instruct/` | Merged instruct model (FP16) |
+| `gguf/` | GGUF quantized (q4_k_m, q8_0) |
+| `awq/` | AWQ 4-bit quantized |
+| `gptq/` | GPTQ 4-bit quantized |
+| `eval/` | Evaluation results & reports |
+
+### Release Steps
+
+```bash
+# 1. Merge LoRA adapters
+python -m src.scripts.merge_lora \
+  --base-model training/cpt/final \
+  --adapter-path training/sft/final \
+  --output-dir release/baligh-1.5b-v0-instruct
+
+# 2. Quantize to GGUF
+python -m src.scripts.quantize \
+  --model-path release/baligh-1.5b-v0-instruct \
+  --output-dir release/baligh-1.5b-v0-instruct-gguf \
+  --method gguf --quantization q4_k_m
+
+# 3. Quantize to AWQ
+python -m src.scripts.quantize \
+  --model-path release/baligh-1.5b-v0-instruct \
+  --output-dir release/baligh-1.5b-v0-instruct-awq \
+  --method awq
+
+# 4. Generate model card
+python -m src.scripts.generate_model_card \
+  --output README.md \
+  --mmlu-score 0.XX \
+  --cidar-rouge 0.XX \
+  --islamic-rouge 0.XX \
+  --perplexity XX.X
+
+# 5. Push to HF Hub
+python -m src.scripts.push_to_hf \
+  --model-dir release/baligh-1.5b-v0-instruct \
+  --repo-id Kandil7/Baligh-1.5B \
+  --path-in-repo instruct
+```
+
+## GitHub Actions (CI/CD)
+
+Automated workflows in `.github/workflows/`:
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `ci.yml` | PR/push | Lint, typecheck, test |
+| `cpt-training.yml` | Manual | CPT training on GPU runners |
+| `sft-training.yml` | Manual | SFT training on GPU runners |
+| `release.yml` | Tag push | Merge, quantize, push to HF |
+
+### Run Training via GitHub Actions
+
+1. Go to **Actions** → **CPT Training** → **Run workflow**
+2. Select config (stage1/stage2/islamic)
+3. Wait for completion → artifacts uploaded to HF Hub
+4. Repeat for **SFT Training**
+5. Create release tag `v0` → triggers **Release** workflow
 
 ## Project Structure
 
@@ -165,8 +248,10 @@ Baligh/
 ├── src/scripts/          # CLI entry points
 ├── configs/              # YAML configurations
 ├── docker/               # Containerization
+├── colab_cli/            # Colab notebooks + runner
 ├── tests/                # Test suite
 ├── docs/                 # Documentation
+│   └── learning/         # Architecture guides (17 files)
 └── requirements/         # Dependencies
 ```
 
@@ -196,6 +281,16 @@ pip install pre-commit
 pre-commit install
 ```
 
+## Dependencies
+
+| File | Purpose |
+|------|---------|
+| `requirements/base.txt` | Core: transformers, torch, datasets, accelerate, peft, trl |
+| `requirements/training.txt` | Training: unsloth, bitsandbytes, wandb, tensorboard |
+| `requirements/eval.txt` | Evaluation: lm-eval, rouge-score, bert-score |
+| `requirements/quant.txt` | Quantization: llama-cpp-python, autoawq, auto-gptq |
+| `requirements/dev.txt` | Dev: pytest, ruff, mypy, pre-commit |
+
 ## License
 
 Apache 2.0
@@ -210,3 +305,10 @@ Apache 2.0
   url={https://github.com/Kandil7/Baligh-1.5B}
 }
 ```
+
+## Links
+
+- **Model Hub**: https://huggingface.co/Kandil7/Baligh-1.5B
+- **GitHub**: https://github.com/Kandil7/Baligh-1.5B
+- **Documentation**: `docs/learning/`
+- **Issues**: https://github.com/Kandil7/Baligh-1.5B/issues
