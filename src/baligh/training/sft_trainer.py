@@ -7,7 +7,7 @@ import torch
 from transformers import Trainer, TrainingArguments, DataCollatorForSeq2Seq
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from trl import SFTTrainer as TrlSFTTrainer, SFTConfig
-from baligh.config import get_sft_config, get_model_config, get_lora_config, get_base_config
+from baligh.config import get_sft_config, get_model_config, get_lora_config, get_config
 from baligh.models.loader import load_base_model, apply_lora
 from baligh.models.tokenizer import get_tokenizer, apply_chat_template, format_instruction
 from baligh.data.formatter import get_sft_formatter
@@ -21,7 +21,7 @@ class SFTTrainer:
     def __init__(self, config=None, model=None, tokenizer=None, train_dataset=None, eval_dataset=None, output_dir=None):
         self.config = config or get_sft_config()
         self.model_config = get_model_config()
-        self.base_config = get_base_config()
+        self.base_config = get_config()
         self.output_dir = output_dir or self.base_config.output_dir / 'sft'
         self.output_dir.mkdir(parents=True, exist_ok=True)
         

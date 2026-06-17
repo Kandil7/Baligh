@@ -1,7 +1,7 @@
 """Dataset loading for Baligh-1.5B v0."""
 
 from datasets import load_dataset, concatenate_datasets, interleave_datasets
-from baligh.config import get_cpt_config, get_sft_config, get_base_config
+from baligh.config import get_cpt_config, get_sft_config, get_config
 from baligh.utils.logging import get_logger
 
 logger = get_logger(__name__)

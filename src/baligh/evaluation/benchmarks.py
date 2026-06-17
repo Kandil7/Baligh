@@ -7,14 +7,15 @@ from baligh.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
+
 def run_mmlu_arabic(evaluator, max_samples=100):
+    """Run MMLU Arabic benchmark."""
     logger.info("Running MMLU-Arabic benchmark")
     dataset = load_dataset("FreedomIntelligence/MMLU_Arabic", split="test")
     results = []
     for example in dataset.select(range(min(max_samples, len(dataset)))):
-        prompt = example["question"] + "
-" + "
-".join([f"{k}. {v}" for k, v in example["choices"].items()])
+        choices_text = "\n".join([f"{k}. {v}" for k, v in example["choices"].items()])
+        prompt = example["question"] + "\n" + choices_text
         response = evaluator.generate(prompt)
         pred = response.strip()[0] if response.strip() else ""
         correct = pred == example["answer"]
@@ -23,7 +24,9 @@ def run_mmlu_arabic(evaluator, max_samples=100):
     logger.info("MMLU-Arabic accuracy: %.4f" % accuracy)
     return {"accuracy": accuracy, "results": results}
 
+
 def run_cidar_eval(evaluator, max_samples=100):
+    """Run CIDAR evaluation benchmark."""
     logger.info("Running CIDAR evaluation")
     dataset = load_dataset("arbml/CIDAR", split="test")
     predictions = []
@@ -31,8 +34,7 @@ def run_cidar_eval(evaluator, max_samples=100):
     for example in dataset.select(range(min(max_samples, len(dataset)))):
         prompt = example["instruction"]
         if example.get("input"):
-            prompt += "
-" + example["input"]
+            prompt += "\n" + example["input"]
         response = evaluator.generate(prompt)
         predictions.append(response)
         references.append(example["output"])
@@ -42,7 +44,9 @@ def run_cidar_eval(evaluator, max_samples=100):
     logger.info("CIDAR BLEU: %.2f" % bleu)
     return {"rouge": rouge, "bleu": bleu, "predictions": predictions, "references": references}
 
+
 def run_islamic_qa(evaluator, dataset, max_samples=100):
+    """Run Islamic QA evaluation."""
     logger.info("Running Islamic QA evaluation")
     predictions = []
     references = []

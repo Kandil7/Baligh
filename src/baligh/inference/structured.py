@@ -16,17 +16,17 @@ class StructuredOutput:
         json_prompt = prompt + "
 
 Respond ONLY with valid JSON. No extra text."
-        for attempt in range(max_retries in range(max_retries):
+        for attempt in range(max_retries):
             response = self.generator.generate(json_prompt, temperature=0.1, max_new_tokens=1024)
             try:
                 data = json.loads(response)
                 if schema:
-                    pass
+                    pass  # Schema validation placeholder
                 return data
             except json.JSONDecodeError:
                 logger.warning("Failed to parse JSON, retry %d/%d" % (attempt + 1, max_retries))
         raise ValueError("Failed to extract valid JSON after %d retries" % max_retries)
 
-def extract_json(model_path, prompt, adapter_path=None, **kwargs):
+def extract_json(model_path extract_json(model_path, prompt, adapter_path=None, **kwargs):
     extractor = StructuredOutput(model_path, adapter_path)
     return extractor.extract_json(prompt, **kwargs)

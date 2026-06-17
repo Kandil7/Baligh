@@ -1,6 +1,7 @@
 """Logging setup for Baligh-1.5B v0."""
 
 import sys
+import logging
 from pathlib import Path
 from loguru import logger
 from baligh.config import get_config

@@ -6,7 +6,7 @@ from typing import Optional
 import torch
 from transformers import Trainer, TrainingArguments, DataCollatorForLanguageModeling
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-from baligh.config import get_cpt_config, get_model_config, get_lora_config, get_base_config
+from baligh.config import get_cpt_config, get_model_config, get_lora_config, get_config
 from baligh.models.loader import load_base_model, apply_lora
 from baligh.models.tokenizer import get_tokenizer
 from baligh.data.formatter import get_cpt_formatter
@@ -26,7 +26,7 @@ class CPTTrainer:
     def __init__(self, config=None, model=None, tokenizer=None, train_dataset=None, eval_dataset=None, output_dir=None):
         self.config = config or get_cpt_config()
         self.model_config = get_model_config()
-        self.base_config = get_base_config()
+        self.base_config = get_config()
         self.output_dir = output_dir or self.base_config.output_dir / 'cpt'
         self.output_dir.mkdir(parents=True, exist_ok=True)
         

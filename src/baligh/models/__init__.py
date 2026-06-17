@@ -1,7 +1,8 @@
 """Models package for Baligh-1.5B v0."""
 
 from baligh.models.loader import (
-    load_model,
+    load_base_model,
+    apply_lora,
     load_lora_model,
     merge_lora,
     load_tokenizer,
@@ -26,7 +27,8 @@ from baligh.models.quantization import (
 
 __all__ = [
     # Loader
-    "load_model",
+    "load_base_model",
+    "apply_lora",
     "load_lora_model",
     "merge_lora",
     "load_tokenizer",

@@ -120,9 +120,7 @@ def format_instruction(
     messages = []
     
     if input_text:
-        user_content = f"{instruction}
-
-{input_text}"
+        user_content = f"{instruction}\n\n{input_text}"
     else:
         user_content = instruction
     

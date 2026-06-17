@@ -22,7 +22,7 @@ from collections import defaultdict
 from datasets import Dataset, DatasetDict, load_dataset, concatenate_datasets, interleave_datasets
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from baligh.config import get_cpt_config, get_sft_config, get_base_config
+from baligh.config import get_cpt_config, get_sft_config, get_config
 from baligh.data import (
     load_cpt_datasets, load_sft_datasets, load_eval_datasets,
     get_cleaning_pipeline, mix_cpt_datasets, mix_sft_datasets,

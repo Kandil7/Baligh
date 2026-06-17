@@ -277,4 +277,14 @@ def get_lora_config() -> LoRAConfig:
     return LoRAConfig()
 
 
-def get_cpt_config() -> CPTCon
+def get_cpt_config() -> CPTConfig:
+    return CPTConfig()
+
+def get_sft_config() -> SFTConfig:
+    return SFTConfig()
+
+def get_eval_config() -> EvalConfig:
+    return EvalConfig()
+
+def get_quantization_config() -> QuantizationConfig:
+    return QuantizationConfig()
