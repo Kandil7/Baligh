@@ -1,9 +1,6 @@
 """Evaluation metrics for Baligh-1.5B v0."""
 
 import numpy as np
-from bert_score import score as bert_score
-from rouge_score import rouge_scorer
-from sacrebleu import corpus_bleu
 
 from baligh.utils.logging import get_logger
 
@@ -30,6 +27,8 @@ def compute_perplexity(model, dataloader, device):
 
 
 def compute_rouge(predictions, references):
+    from rouge_score import rouge_scorer
+
     scorer = rouge_scorer.RougeScorer(["rouge1", "rouge2", "rougeL"], use_stemmer=True)
     scores = {"rouge1": [], "rouge2": [], "rougeL": []}
     for pred, ref in zip(predictions, references, strict=False):
@@ -40,13 +39,17 @@ def compute_rouge(predictions, references):
 
 
 def compute_bleu(predictions, references):
+    from sacrebleu import corpus_bleu
+
     refs = [[r] for r in references]
     bleu = corpus_bleu(predictions, refs)
     return bleu.score
 
 
 def compute_bert_score(predictions, references, lang="ar"):
-    P, R, F1 = bert_score(predictions, references, lang=lang, verbose=False)
+    from bert_score import score as bert_score_fn
+
+    P, R, F1 = bert_score_fn(predictions, references, lang=lang, verbose=False)
     return {"precision": P.mean().item(), "recall": R.mean().item(), "f1": F1.mean().item()}
 
 
