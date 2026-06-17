@@ -73,9 +73,11 @@ Baligh-1.5B v0 is designed for:
 
 import argparse
 from pathlib import Path
-from baligh.utils.logging import setup_logging, get_logger
+
+from baligh.utils.logging import get_logger, setup_logging
 
 logger = get_logger(__name__)
+
 
 def main():
     parser = argparse.ArgumentParser(description="Generate model card for Baligh-1.5B")
@@ -100,6 +102,7 @@ def main():
     output_path.write_text(card, encoding="utf-8")
 
     logger.info("Model card generated at %s" % output_path)
+
 
 if __name__ == "__main__":
     main()

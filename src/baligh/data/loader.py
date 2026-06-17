@@ -1,7 +1,7 @@
 """Dataset loading for Baligh-1.5B v0."""
 
-from datasets import load_dataset, concatenate_datasets, interleave_datasets
-from baligh.config import get_cpt_config, get_sft_config, get_config
+from datasets import load_dataset
+
 from baligh.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -36,6 +36,7 @@ DATASET_REGISTRY = {
         "domain": "mixed",
     },
 }
+
 
 def load_dataset_by_name(name: str, split: str = None, streaming: bool = None, **kwargs):
     if name not in DATASET_REGISTRY:

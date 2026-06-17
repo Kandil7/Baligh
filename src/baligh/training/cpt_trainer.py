@@ -1,17 +1,17 @@
 """Continued Pretraining Trainer for Baligh-1.5B v0."""
 
-import os
 from dataclasses import dataclass
-from typing import Optional
+
 import torch
-from transformers import Trainer, TrainingArguments, DataCollatorForLanguageModeling
-from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-from baligh.config import get_cpt_config, get_model_config, get_lora_config, get_config
-from baligh.models.loader import load_base_model, apply_lora
-from baligh.models.tokenizer import get_tokenizer
+from peft import prepare_model_for_kbit_training
+from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments
+
+from baligh.config import get_config, get_cpt_config, get_model_config
 from baligh.data.formatter import get_cpt_formatter
+from baligh.models.loader import apply_lora, load_base_model
+from baligh.models.tokenizer import get_tokenizer
 from baligh.utils.logging import get_logger
-from baligh.utils.memory import log_memory_stats, clear_memory
+from baligh.utils.memory import log_memory_stats
 from baligh.utils.seeding import set_seed
 
 logger = get_logger(__name__)
@@ -29,23 +29,23 @@ class CPTTrainer:
         self.base_config = get_config()
         self.output_dir = output_dir or self.base_config.output_dir / 'cpt'
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         set_seed(self.base_config.seed)
-        
+
         self.tokenizer = tokenizer or get_tokenizer(self.model_config.tokenizer_name, self.model_config.max_seq_length)
         self.formatter = get_cpt_formatter(self.model_config.tokenizer_name, self.model_config.max_seq_length, packing=self.config.packing)
-        
+
         if model is None:
             self.model = self._setup_model()
         else:
             self.model = model
-        
+
         self.train_dataset = train_dataset
         self.eval_dataset = eval_dataset
-        
+
         self.training_args = self._create_training_args()
         self.trainer = self._create_trainer()
-        
+
         logger.info('CPTTrainer initialized')
         log_memory_stats(prefix='After trainer init')
     @classmethod
@@ -54,7 +54,7 @@ class CPTTrainer:
         from baligh.config import CPTConfig
         config = CPTConfig(**config_dict.get("cpt", {}))
         return cls(config=config, **kwargs)
-    
+
     def _setup_model(self):
         model = load_base_model(
             model_name=self.model_config.unsloth_model_name,
@@ -67,7 +67,7 @@ class CPTTrainer:
         model = apply_lora(model)
         model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
         return model
-    
+
     def _create_training_args(self):
         return TrainingArguments(
             output_dir=str(self.output_dir),
@@ -105,10 +105,10 @@ class CPTTrainer:
             gradient_checkpointing=True,
             ddp_find_unused_parameters=False,
         )
-    
+
     def _create_trainer(self):
         data_collator = DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=False)
-        
+
         return Trainer(
             model=self.model,
             args=self.training_args,
@@ -117,19 +117,19 @@ class CPTTrainer:
             data_collator=data_collator,
             tokenizer=self.tokenizer,
         )
-    
+
     def train(self, resume_from_checkpoint=None):
         logger.info('Starting CPT training')
         log_memory_stats(prefix='Before training')
-        
+
         result = self.trainer.train(resume_from_checkpoint=resume_from_checkpoint)
-        
+
         log_memory_stats(prefix='After training')
         logger.info('Training completed: %s' % result)
-        
+
         self.save_model()
         return result
-    
+
     def save_model(self, path=None):
         save_path = path or self.output_dir / 'final'
         save_path.mkdir(parents=True, exist_ok=True)

@@ -1,8 +1,10 @@
 """Distributed training utilities."""
 
 import os
+
 import torch
 import torch.distributed as dist
+
 from baligh.config import get_config
 from baligh.utils.logging import get_logger
 
@@ -42,21 +44,21 @@ def is_main_process() -> bool:
 
 def setup_distributed(backend: str = "nccl") -> None:
     """Initialize distributed training.
-    
+
     Args:
         backend: Distributed backend ('nccl' for GPU, 'gloo' for CPU)
     """
     if not dist.is_available():
         logger.warning("Distributed training not available")
         return
-    
+
     if dist.is_initialized():
         logger.info("Distributed already initialized")
         return
-    
+
     # Get config
     config = get_config()
-    
+
     # Initialize process group
     dist.init_process_group(
         backend=backend,
@@ -64,10 +66,10 @@ def setup_distributed(backend: str = "nccl") -> None:
         world_size=config.world_size,
         rank=config.local_rank,
     )
-    
+
     # Set device
     torch.cuda.set_device(get_local_rank())
-    
+
     logger.info(
         f"Distributed initialized: rank={get_rank()}, "
         f"world_size={get_world_size()}, local_rank={get_local_rank()}"
@@ -89,17 +91,17 @@ def barrier() -> None:
 
 def reduce_dict(input_dict: dict, average: bool = True) -> dict:
     """Reduce dictionary values across all processes.
-    
+
     Args:
         input_dict: Dictionary of tensors to reduce
         average: Whether to average or sum
-        
+
     Returns:
         Reduced dictionary
     """
     if not is_distributed():
         return input_dict
-    
+
     world_size = get_world_size()
     with torch.no_grad():
         names = []
@@ -107,28 +109,28 @@ def reduce_dict(input_dict: dict, average: bool = True) -> dict:
         for k in sorted(input_dict.keys()):
             names.append(k)
             values.append(input_dict[k])
-        
+
         values = torch.stack(values, dim=0)
         dist.all_reduce(values)
-        
+
         if average:
             values /= world_size
-        
-        return {k: v for k, v in zip(names, values)}
+
+        return {k: v for k, v in zip(names, values, strict=False)}
 
 
 def gather_object(obj: object) -> list:
     """Gather object from all processes.
-    
+
     Args:
         obj: Object to gather
-        
+
     Returns:
         List of objects from all processes (only on main process)
     """
     if not is_distributed():
         return [obj]
-    
+
     output = [None] * get_world_size()
     dist.all_gather_object(output, obj)
     return output
@@ -136,17 +138,17 @@ def gather_object(obj: object) -> list:
 
 def broadcast_object(obj: object, src: int = 0) -> object:
     """Broadcast object from source to all processes.
-    
+
     Args:
         obj: Object to broadcast (only used on src)
         src: Source rank
-        
+
     Returns:
         Broadcasted object
     """
     if not is_distributed():
         return obj
-    
+
     output = [obj]
     dist.broadcast_object_list(output, src=src)
     return output[0]

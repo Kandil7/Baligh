@@ -1,9 +1,11 @@
 """LoRA and quantization configurations for Baligh-1.5B v0."""
 
+import torch
 from peft import LoraConfig, TaskType
 from transformers import BitsAndBytesConfig
-import torch
+
 from baligh.config import get_lora_config, get_model_config, get_quantization_config
+
 
 def create_lora_config(custom_config=None):
     cfg = custom_config or get_lora_config()

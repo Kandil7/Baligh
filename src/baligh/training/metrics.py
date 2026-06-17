@@ -1,7 +1,8 @@
 """Training metrics for Baligh-1.5B v0."""
 
-import torch
 import numpy as np
+import torch
+
 from baligh.utils.logging import get_logger
 
 logger = get_logger(__name__)

@@ -1,7 +1,7 @@
 """Checkpoint management for Baligh-1.5B v0."""
 
 from pathlib import Path
-import glob
+
 from baligh.utils.logging import get_logger
 
 logger = get_logger(__name__)

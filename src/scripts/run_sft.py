@@ -1,19 +1,26 @@
 #!/usr/bin/env python3
 """Run SFT training for Baligh-1.5B v0."""
+
 import argparse
+
 import yaml
-from pathlib import Path
 from datasets import load_from_disk
+
 from baligh.training import train_sft
-from baligh.utils.logging import setup_logging, get_logger
+from baligh.utils.logging import get_logger, setup_logging
+
 logger = get_logger(__name__)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run SFT training for Baligh-1.5B")
     parser.add_argument("--data-dir", type=str, required=True, help="Path to prepared SFT data")
     parser.add_argument("--output-dir", type=str, default="training/sft", help="Output directory")
     parser.add_argument("--resume", type=str, default=None, help="Resume from checkpoint")
     parser.add_argument("--eval-data", type=str, default=None, help="Evaluation data path")
-    parser.add_argument("--base-model", type=str, default=None, help="Path to base model (after CPT)")
+    parser.add_argument(
+        "--base-model", type=str, default=None, help="Path to base model (after CPT)"
+    )
     parser.add_argument("--config", type=str, default=None, help="YAML config file path")
     args = parser.parse_args()
     setup_logging()
@@ -39,5 +46,7 @@ def main():
     )
     logger.info("SFT training completed!")
     logger.info(f"Result: {result}")
+
+
 if __name__ == "__main__":
     main()

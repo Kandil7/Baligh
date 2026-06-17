@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """Run CPT training for Baligh-1.5B v0."""
+
 import argparse
+
 import yaml
-from pathlib import Path
 from datasets import load_from_disk
+
 from baligh.training import train_cpt
-from baligh.utils.logging import setup_logging, get_logger
+from baligh.utils.logging import get_logger, setup_logging
+
 logger = get_logger(__name__)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run CPT training for Baligh-1.5B")
     parser.add_argument("--data-dir", type=str, required=True, help="Path to prepared CPT data")
@@ -37,5 +42,7 @@ def main():
     )
     logger.info("CPT training completed!")
     logger.info(f"Result: {result}")
+
+
 if __name__ == "__main__":
     main()

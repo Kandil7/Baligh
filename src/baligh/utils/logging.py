@@ -1,9 +1,11 @@
 """Logging setup for Baligh-1.5B v0."""
 
-import sys
 import logging
+import sys
 from pathlib import Path
+
 from loguru import logger
+
 from baligh.config import get_config
 
 
@@ -14,10 +16,10 @@ def setup_logging(
     json_logs: bool = False,
 ) -> None:
     """Configure loguru logger."""
-    
+
     # Remove default handler
     logger.remove()
-    
+
     # Console handler
     if log_format == "json":
         logger.add(
@@ -39,7 +41,7 @@ def setup_logging(
             ),
             colorize=True,
         )
-    
+
     # File handler
     if log_file:
         log_file.parent.mkdir(parents=True, exist_ok=True)
@@ -52,31 +54,30 @@ def setup_logging(
             compression="gz",
             serialize=json_logs,
         )
-    
+
     # Configure standard library logging to use loguru
     import logging
+
     logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 
 
 class InterceptHandler(logging.Handler):
     """Intercept standard library logging and redirect to loguru."""
-    
+
     def emit(self, record: logging.LogRecord) -> None:
         # Get corresponding Loguru level if it exists
         try:
             level = logger.level(record.levelname).name
         except ValueError:
             level = record.levelno
-        
+
         # Find caller from where originated the logged message
         frame, depth = logging.currentframe(), 2
         while frame.f_code.co_filename == logging.__file__:
             frame = frame.f_back
             depth += 1
-        
-        logger.opt(depth=depth, exception=record.exc_info).log(
-            level, record.getMessage()
-        )
+
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
 def get_logger(name: str):

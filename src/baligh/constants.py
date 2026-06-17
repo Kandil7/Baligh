@@ -53,10 +53,7 @@ DEFAULT_WEIGHT_DECAY = 0.01
 DEFAULT_LORA_R = 16
 DEFAULT_LORA_ALPHA = 16
 DEFAULT_LORA_DROPOUT = 0.0
-TARGET_MODULES = [
-    "q_proj", "k_proj", "v_proj", "o_proj",
-    "gate_proj", "up_proj", "down_proj"
-]
+TARGET_MODULES = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 
 # Dataset constants
 CPT_MIX_RATIOS = {

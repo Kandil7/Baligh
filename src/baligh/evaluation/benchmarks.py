@@ -1,8 +1,8 @@
 """Benchmark runners for Baligh-1.5B v0."""
 
 from datasets import load_dataset
-from baligh.evaluation.evaluator import Evaluator
-from baligh.evaluation.metrics import compute_rouge, compute_bleu, compute_exact_match
+
+from baligh.evaluation.metrics import compute_bleu, compute_exact_match, compute_rouge
 from baligh.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -59,4 +59,9 @@ def run_islamic_qa(evaluator, dataset, max_samples=100):
     exact_match = compute_exact_match(predictions, references)
     logger.info("Islamic QA ROUGE: %s" % rouge)
     logger.info("Islamic QA Exact Match: %.4f" % exact_match)
-    return {"rouge": rouge, "exact_match": exact_match, "predictions": predictions, "references": references}
+    return {
+        "rouge": rouge,
+        "exact_match": exact_match,
+        "predictions": predictions,
+        "references": references,
+    }

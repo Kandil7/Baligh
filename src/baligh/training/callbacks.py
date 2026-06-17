@@ -1,8 +1,9 @@
 """Training callbacks for Baligh-1.5B v0."""
 
 from transformers import TrainerCallback
+
 from baligh.utils.logging import get_logger
-from baligh.utils.memory import log_memory_stats, clear_memory
+from baligh.utils.memory import clear_memory, log_memory_stats
 
 logger = get_logger(__name__)
 

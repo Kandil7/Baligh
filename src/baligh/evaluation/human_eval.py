@@ -1,11 +1,12 @@
 """Human evaluation for Baligh-1.5B v0."""
 
-from dataclasses import dataclass, field
-from typing import List, Dict
+from dataclasses import dataclass
+
 from baligh.config import get_eval_config
 from baligh.utils.logging import get_logger
 
 logger = get_logger(__name__)
+
 
 @dataclass
 class EvaluationRubric:
@@ -14,27 +15,31 @@ class EvaluationRubric:
     arabic_quality: str = "1-5: Formal Arabic quality (fusha)"
     usefulness: str = "1-5: Helpfulness for the user query"
     faithfulness: str = "1-5: Faithfulness to source knowledge"
-    
+
     @classmethod
     def default(cls):
         config = get_eval_config()
         return cls(**config.human_eval_rubric)
 
+
 @dataclass
 class HumanEvaluation:
     prompt: str
     response: str
-    scores: Dict[str, int]
+    scores: dict[str, int]
     annotator: str
     notes: str = ""
+
 
 class HumanEvaluator:
     def __init__(self, rubric=None):
         self.rubric = rubric or EvaluationRubric.default()
-        self.evaluations: List[HumanEvaluation] = []
+        self.evaluations: list[HumanEvaluation] = []
 
     def add_evaluation(self, prompt, response, scores, annotator, notes=""):
-        eval_obj = HumanEvaluation(prompt=prompt, response=response, scores=scores, annotator=annotator, notes=notes)
+        eval_obj = HumanEvaluation(
+            prompt=prompt, response=response, scores=scores, annotator=annotator, notes=notes
+        )
         self.evaluations.append(eval_obj)
 
     def get_average_scores(self):
@@ -45,9 +50,14 @@ class HumanEvaluator:
 
     def export_csv(self, path):
         import csv
+
         with open(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(["prompt", "response"] + list(self.rubric.__dict__.keys()) + ["annotator", "notes"])
+            writer.writerow(
+                ["prompt", "response"] + list(self.rubric.__dict__.keys()) + ["annotator", "notes"]
+            )
             for e in self.evaluations:
-                writer.writerow([e.prompt, e.response] + list(e.scores.values()) + [e.annotator, e.notes])
+                writer.writerow(
+                    [e.prompt, e.response] + list(e.scores.values()) + [e.annotator, e.notes]
+                )
         logger.info("Human eval exported to %s" % path)
