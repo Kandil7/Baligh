@@ -111,10 +111,10 @@ def apply_lora(
         )
 
     logger.info(f"Applying LoRA: r={lora_config.r}, alpha={lora_config.lora_alpha}")
-    model = get_peft_model(model, lora_config)
-    model.print_trainable_parameters()
+    model = get_peft_model(model, lora_config)  # type: ignore[assignment]
+    model.print_trainable_parameters()  # type: ignore[union-attr]
 
-    return model
+    return model  # type: ignore[return-value]
 
 
 def load_lora_model(
@@ -151,7 +151,7 @@ def merge_lora(
         Merged base model.
     """
     logger.info("Merging LoRA adapters...")
-    merged_model = model.merge_and_unload()
+    merged_model = model.merge_and_unload()  # type: ignore[union-attr]
 
     if save_path:
         logger.info(f"Saving merged model to: {save_path}")

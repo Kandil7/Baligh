@@ -139,7 +139,7 @@ def get_cleaning_pipeline(language_filter="arabic", quality_filter=True):
 
 def deduplicate_dataset(dataset, text_column="text", num_perm=128, threshold=0.7):
     try:
-        from datasketch import MinHash, MinHashLSH
+        from datasketch import MinHash, MinHashLSH  # type: ignore[import-untyped]
     except ImportError:
         logger.warning("datasketch not installed, skipping deduplication")
         return dataset

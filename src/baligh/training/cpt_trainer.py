@@ -69,7 +69,7 @@ class CPTTrainer:
         return model
 
     def _create_training_args(self):
-        return TrainingArguments(
+        return TrainingArguments(  # type: ignore[call-arg]
             output_dir=str(self.output_dir),
             max_steps=self.config.max_steps,
             num_train_epochs=self.config.num_train_epochs,
@@ -88,7 +88,7 @@ class CPTTrainer:
             save_steps=self.config.save_steps,
             save_total_limit=self.config.save_total_limit,
             eval_steps=self.config.eval_steps,
-            evaluation_strategy=self.config.evaluation_strategy,
+            evaluation_strategy=self.config.evaluation_strategy,  # type: ignore[call-arg]
             load_best_model_at_end=True,
             metric_for_best_model='eval_loss',
             greater_is_better=False,
@@ -115,7 +115,7 @@ class CPTTrainer:
             train_dataset=self.train_dataset,
             eval_dataset=self.eval_dataset,
             data_collator=data_collator,
-            tokenizer=self.tokenizer,
+            tokenizer=self.tokenizer,  # type: ignore[call-arg]
         )
 
     def train(self, resume_from_checkpoint=None):
@@ -135,7 +135,7 @@ class CPTTrainer:
         save_path.mkdir(parents=True, exist_ok=True)
         logger.info('Saving model to %s' % save_path)
         self.trainer.save_model(str(save_path))
-        self.tokenizer.save_pretrained(str(save_path))
+        self.tokenizer.save_pretrained(str(save_path))  # type: ignore[union-attr]
         logger.info('Model saved')
 
 def train_cpt(train_dataset, eval_dataset=None, output_dir=None, resume_from_checkpoint=None, config=None):

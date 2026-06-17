@@ -94,7 +94,7 @@ def quantize_awq(
         zero_point: Whether to use zero point.
         version: AWQ version.
     """
-    from autoawq import AutoAWQForCausalLM
+    from autoawq import AutoAWQForCausalLM  # type: ignore[import-untyped]
     from transformers import AutoTokenizer
 
     logger.info(f"Quantizing to AWQ: {bits}-bit, group_size={group_size}")
@@ -132,7 +132,7 @@ def quantize_gptq(
         group_size: Group size.
         desc_act: Whether to use desc_act.
     """
-    from auto_gptq import AutoGPTQForCausalLM
+    from auto_gptq import AutoGPTQForCausalLM  # type: ignore[import-untyped]
     from transformers import AutoTokenizer
 
     logger.info(f"Quantizing to GPTQ: {bits}-bit, group_size={group_size}")

@@ -1,6 +1,6 @@
 """Tokenizer utilities for Baligh-1.5B v0."""
 
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
 from baligh.config import get_model_config
 from baligh.utils.logging import get_logger
@@ -14,7 +14,7 @@ def get_tokenizer(
     padding_side: str = "right",
     truncation_side: str = "right",
     add_special_tokens: bool = True,
-) -> AutoTokenizer:
+) -> PreTrainedTokenizerBase:
     """Get configured tokenizer.
 
     Args:
@@ -48,7 +48,7 @@ def get_tokenizer(
     return tokenizer
 
 
-def get_chat_template(tokenizer: AutoTokenizer) -> str:
+def get_chat_template(tokenizer: PreTrainedTokenizerBase) -> str:
     """Get chat template for Qwen2.5.
 
     Args:
@@ -77,7 +77,7 @@ def get_chat_template(tokenizer: AutoTokenizer) -> str:
 
 
 def apply_chat_template(
-    tokenizer: AutoTokenizer,
+    tokenizer: PreTrainedTokenizerBase,
     messages: list[dict],
     tokenize: bool = True,
     add_generation_prompt: bool = True,
@@ -93,10 +93,10 @@ def apply_chat_template(
     Returns:
         Formatted string or token IDs.
     """
-    if tokenizer.chat_template is None:
-        tokenizer.chat_template = get_chat_template(tokenizer)
+    if tokenizer.chat_template is None:  # type: ignore[union-attr]
+        tokenizer.chat_template = get_chat_template(tokenizer)  # type: ignore[union-attr]
 
-    return tokenizer.apply_chat_template(
+    return tokenizer.apply_chat_template(  # type: ignore[union-attr]
         messages,
         tokenize=tokenize,
         add_generation_prompt=add_generation_prompt,
@@ -143,4 +143,4 @@ def count_tokens(tokenizer: AutoTokenizer, text: str) -> int:
     Returns:
         Number of tokens.
     """
-    return len(tokenizer.encode(text, add_special_tokens=False))
+    return len(tokenizer.encode(text, add_special_tokens=False))  # type: ignore[union-attr]

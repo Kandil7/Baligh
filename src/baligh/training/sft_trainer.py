@@ -3,8 +3,8 @@
 import torch
 from peft import prepare_model_for_kbit_training
 from transformers import DataCollatorForSeq2Seq
-from trl import SFTConfig
-from trl import SFTTrainer as TrlSFTTrainer
+from trl import SFTConfig  # type: ignore[import-untyped]
+from trl import SFTTrainer as TrlSFTTrainer  # type: ignore[import-untyped]
 
 from baligh.config import get_config, get_model_config, get_sft_config
 from baligh.data.formatter import get_sft_formatter
@@ -108,7 +108,7 @@ class SFTTrainer:
             args=self.training_args,
             train_dataset=self.train_dataset,
             eval_dataset=self.eval_dataset,
-            tokenizer=self.tokenizer,
+            tokenizer=self.tokenizer,  # type: ignore[call-arg]
             formatting_func=self.formatter,
             data_collator=DataCollatorForSeq2Seq(self.tokenizer, pad_to_multiple_of=8, return_tensors='pt'),
         )
@@ -130,7 +130,7 @@ class SFTTrainer:
         save_path.mkdir(parents=True, exist_ok=True)
         logger.info('Saving model to %s' % save_path)
         self.trainer.save_model(str(save_path))
-        self.tokenizer.save_pretrained(str(save_path))
+        self.tokenizer.save_pretrained(str(save_path))  # type: ignore[union-attr]
         logger.info('Model saved')
 
 def train_sft(train_dataset, eval_dataset=None, output_dir=None, resume_from_checkpoint=None, base_model_path=None, config=None):
