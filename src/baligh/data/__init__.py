@@ -9,6 +9,9 @@ from baligh.data.datasets import (
     get_islamic_datasets,
     get_sft_datasets,
     list_datasets,
+    load_cpt_datasets,
+    load_eval_datasets,
+    load_sft_datasets,
 )
 from baligh.data.formatter import PromptFormatter, get_cpt_formatter, get_sft_formatter
 from baligh.data.loader import load_dataset_by_name
@@ -52,4 +55,7 @@ __all__ = [
     "get_sft_datasets",
     "get_eval_datasets",
     "get_islamic_datasets",
+    "load_cpt_datasets",
+    "load_sft_datasets",
+    "load_eval_datasets",
 ]

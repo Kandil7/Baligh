@@ -179,9 +179,11 @@ class DataPreparator:
         if self.cleaning_pipeline is None:
             return dataset
 
+        pipeline = self.cleaning_pipeline
+
         def clean_batch(batch):
             texts = batch[text_column]
-            cleaned = self.cleaning_pipeline.clean_batch(texts)
+            cleaned = pipeline.clean_batch(texts)
             return {text_column: cleaned}
 
         return dataset.map(
@@ -196,10 +198,12 @@ class DataPreparator:
         if self.cleaning_pipeline is None:
             return dataset
 
+        pipeline = self.cleaning_pipeline
+
         def clean_batch(batch):
             for col in ["instruction", "input", "output"]:
                 if col in batch:
-                    batch[col] = self.cleaning_pipeline.clean_batch(batch[col])
+                    batch[col] = pipeline.clean_batch(batch[col])
             return batch
 
         return dataset.map(

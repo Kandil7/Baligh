@@ -156,7 +156,7 @@ DATASETS = {
 
 def get_dataset_config(name):
     if name not in DATASETS:
-        raise ValueError("Unknown dataset: %s" % name)
+        raise ValueError(f"Unknown dataset: {name}")
     return DATASETS[name]
 
 
@@ -180,3 +180,42 @@ def get_eval_datasets():
 
 def get_islamic_datasets():
     return list_datasets("cpt_islamic")
+
+
+def load_cpt_datasets(split=None, streaming=None):
+    from baligh.data.loader import load_dataset_by_name
+
+    result = {}
+    for name, config in DATASETS.items():
+        if config.get("type") != "cpt":
+            continue
+        ds_split = split or config.get("split", "train")
+        ds_streaming = streaming if streaming is not None else config.get("streaming", False)
+        result[name] = load_dataset_by_name(name, split=ds_split, streaming=ds_streaming)
+    return result
+
+
+def load_sft_datasets(split=None, streaming=None):
+    from baligh.data.loader import load_dataset_by_name
+
+    result = {}
+    for name, config in DATASETS.items():
+        if config.get("type") != "sft":
+            continue
+        ds_split = split or config.get("split", "train")
+        ds_streaming = streaming if streaming is not None else config.get("streaming", False)
+        result[name] = load_dataset_by_name(name, split=ds_split, streaming=ds_streaming)
+    return result
+
+
+def load_eval_datasets(split=None, streaming=None):
+    from baligh.data.loader import load_dataset_by_name
+
+    result = {}
+    for name, config in DATASETS.items():
+        if config.get("type") != "eval":
+            continue
+        ds_split = split or config.get("split", "train")
+        ds_streaming = streaming if streaming is not None else config.get("streaming", False)
+        result[name] = load_dataset_by_name(name, split=ds_split, streaming=ds_streaming)
+    return result
