@@ -1,1 +1,1 @@
-"""Modal deployment for Baligh-1.5B v0."""
+"""Modal deployment for Baligh-1.7B v0."""

@@ -1,10 +1,18 @@
-"""Dataset registry for Baligh-1.5B v0."""
+"""Dataset registry for Baligh-1.7B v0.
+
+This module is the SINGLE source of truth for dataset metadata (paths,
+splits, streaming mode, column names, licensing). ``baligh.data.loader``
+turns registry entries into ``load_dataset()`` calls; nothing else should
+duplicate this information.
+"""
+
+from typing import Any
 
 from baligh.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-DATASETS = {
+DATASETS: dict[str, dict[str, Any]] = {
     "arabicweb24": {
         "path": "lightonai/ArabicWeb24",
         "split": "train",
@@ -70,6 +78,8 @@ DATASETS = {
         "split": "train",
         "streaming": False,
         "text_column": "context",
+        "question_column": "question",
+        "answer_column": "answer",
         "license": "CC",
         "domain": "islamic",
         "type": "cpt_islamic",
@@ -120,7 +130,11 @@ DATASETS = {
         "path": "BounharAbdelaziz/arabic-msa-summarization",
         "split": "train",
         "streaming": False,
+        # Source documents live in "text", targets in "summary"; the
+        # standardizer below maps them onto the canonical instruction/output
+        # schema before mixing/formatting.
         "instruction_column": "text",
+        "input_column": None,
         "output_column": "summary",
         "license": "Open",
         "domain": "summarization",
@@ -153,10 +167,16 @@ DATASETS = {
     },
 }
 
+# Canonical schemas produced by the standardizers
+CPT_COLUMNS = ("text",)
+SFT_COLUMNS = ("instruction", "input", "output")
 
-def get_dataset_config(name):
+
+def get_dataset_config(name: str) -> dict[str, Any]:
+    """Return the registry entry for *name* (raises ValueError if unknown)."""
     if name not in DATASETS:
-        raise ValueError(f"Unknown dataset: {name}")
+        known = ", ".join(sorted(DATASETS))
+        raise ValueError(f"Unknown dataset: {name}. Registered datasets: {known}")
     return DATASETS[name]
 
 
@@ -182,12 +202,14 @@ def get_islamic_datasets():
     return list_datasets("cpt_islamic")
 
 
-def load_cpt_datasets(split=None, streaming=None):
+def _load_typed_datasets(
+    dataset_type: str, split: str | None = None, streaming: bool | None = None
+) -> dict[str, Any]:
     from baligh.data.loader import load_dataset_by_name
 
     result = {}
     for name, config in DATASETS.items():
-        if config.get("type") != "cpt":
+        if config.get("type") != dataset_type:
             continue
         ds_split = split or config.get("split", "train")
         ds_streaming = streaming if streaming is not None else config.get("streaming", False)
@@ -195,27 +217,55 @@ def load_cpt_datasets(split=None, streaming=None):
     return result
 
 
-def load_sft_datasets(split=None, streaming=None):
-    from baligh.data.loader import load_dataset_by_name
-
-    result = {}
-    for name, config in DATASETS.items():
-        if config.get("type") != "sft":
-            continue
-        ds_split = split or config.get("split", "train")
-        ds_streaming = streaming if streaming is not None else config.get("streaming", False)
-        result[name] = load_dataset_by_name(name, split=ds_split, streaming=ds_streaming)
-    return result
+def load_cpt_datasets(split: str | None = None, streaming: bool | None = None) -> dict[str, Any]:
+    return _load_typed_datasets("cpt", split=split, streaming=streaming)
 
 
-def load_eval_datasets(split=None, streaming=None):
-    from baligh.data.loader import load_dataset_by_name
+def load_sft_datasets(split: str | None = None, streaming: bool | None = None) -> dict[str, Any]:
+    return _load_typed_datasets("sft", split=split, streaming=streaming)
 
-    result = {}
-    for name, config in DATASETS.items():
-        if config.get("type") != "eval":
-            continue
-        ds_split = split or config.get("split", "train")
-        ds_streaming = streaming if streaming is not None else config.get("streaming", False)
-        result[name] = load_dataset_by_name(name, split=ds_split, streaming=ds_streaming)
-    return result
+
+def load_eval_datasets(split: str | None = None, streaming: bool | None = None) -> dict[str, Any]:
+    return _load_typed_datasets("eval", split=split, streaming=streaming)
+
+
+def standardize_cpt_dataset(dataset: Any, name: str) -> Any:
+    """Project any CPT source onto the canonical {"text"} schema."""
+    config = get_dataset_config(name)
+    text_column = config.get("text_column", "text")
+
+    def _to_text(example: dict) -> dict:
+        """Project a raw row onto the canonical text column."""
+        return {"text": example.get(text_column) or ""}
+
+    return dataset.map(_to_text, desc=f"Standardize CPT: {name}")
+
+
+def standardize_sft_dataset(dataset: Any, name: str) -> Any:
+    """Project any SFT source onto {"instruction", "input", "output"}.
+
+    Column names come from the registry so sources like the summarization
+    set (text -> instruction, summary -> output) map correctly instead of
+    being silently dropped by the formatter.
+    """
+    config = get_dataset_config(name)
+    ins_col = config.get("instruction_column", "instruction")
+    in_col = config.get("input_column")
+    out_col = config.get("output_column", "output")
+
+    def _to_canonical(example: dict) -> dict:
+        """Map registry columns onto instruction/input/output."""
+        return {
+            "instruction": example.get(ins_col) or "",
+            "input": (example.get(in_col) or "") if in_col else "",
+            "output": example.get(out_col) or "",
+        }
+
+    has_input = in_col is not None
+    remove = [c for c in dataset.column_names if c not in (ins_col, out_col, in_col)]
+    standardized = dataset.map(
+        _to_canonical, remove_columns=remove, desc=f"Standardize SFT: {name}"
+    )
+    if not has_input and "input" not in standardized.column_names:
+        standardized = standardized.add_column("input", [""] * len(standardized))
+    return standardized

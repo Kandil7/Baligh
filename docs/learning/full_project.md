@@ -1,6 +1,6 @@
-# Baligh-1.5B v0 - Complete Project Learning Documentation
+# Baligh-1.7B v0 - Complete Project Learning Documentation
 
-This document contains the comprehensive learning documentation for the Baligh-1.5B v0 project, extracted from an OpenCode session and organized for reference.
+This document contains the comprehensive learning documentation for the Baligh-1.7B v0 project, extracted from an OpenCode session and organized for reference.
 
 ---
 
@@ -86,7 +86,7 @@ This document contains the comprehensive learning documentation for the Baligh-1
 
 ---
 
-## Model Architecture (Qwen2.5-1.5B)
+## Model Architecture (Qwen3-1.7B)
 
 | Component | Specification |
 |-----------|---------------|
@@ -136,22 +136,22 @@ Each decision follows: **Decision → Context → Options → Chosen → Trade-o
 
 ---
 
-## 1. Base Model: Qwen2.5-1.5B Base (not Instruct)
+## 1. Base Model: Qwen3-1.7B Base (not Instruct)
 
-**Decision**: Use Qwen2.5-1.5B **Base** (pretrained) not Instruct
+**Decision**: Use Qwen3-1.7B **Base** (pretrained) not Instruct
 
 **Context**: Need Arabic-first model with Islamic specialization; starting point determines capabilities
 
 **Options Considered**:
 | Option | Pros | Cons |
 |--------|------|------|
-| Qwen2.5-1.5B Base | Clean slate; full control over Arabic adaptation | Requires full CPT + SFT |
-| Qwen2.5-1.5B Instruct | Ready for chat; less training | Baked-in English alignment; harder to Arabic-ize |
+| Qwen3-1.7B Base | Clean slate; full control over Arabic adaptation | Requires full CPT + SFT |
+| Qwen3-1.7B Instruct | Ready for chat; less training | Baked-in English alignment; harder to Arabic-ize |
 | LLaMA-2-1.5B | - | Doesn't exist |
 | Mistral-1.5B | - | Doesn't exist |
 | BLOOM-1.5B | Multilingual | Weak Arabic; deprecated |
 
-**Chosen**: **Qwen2.5-1.5B Base**
+**Chosen**: **Qwen3-1.7B Base**
 
 **Rationale**:
 - Native Arabic support in tokenizer/vocab
@@ -458,7 +458,7 @@ labels[:assistant_start] = -100  # CrossEntropyLoss ignores -100
 **Chosen**: **Unsloth + TRL SFTTrainer**
 
 **Rationale**:
-- Pre-quantized models (`unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit`)
+- Pre-quantized models (`unsloth/Qwen3-1.7B-Base`)
 - Fused kernels for QLoRA forward/backward
 - Drop-in replacement for HF Trainer
 
@@ -622,13 +622,12 @@ def test_cpt_trainer_smoke():
 def sample_cpt_data():
     return Dataset.from_dict({"text": ["نص تجريبي"] * 100})
 
+
 @pytest.fixture
 def sample_sft_data():
-    return Dataset.from_dict({
-        "instruction": ["سؤال"] * 10,
-        "input": [""] * 10,
-        "output": ["جواب."] * 10
-    })
+    return Dataset.from_dict(
+        {"instruction": ["سؤال"] * 10, "input": [""] * 10, "output": ["جواب."] * 10}
+    )
 ```
 
 ---
@@ -696,17 +695,16 @@ strict_optional = true
 ```python
 # Good: Full type hints
 def load_dataset_by_name(
-    name: str, 
-    split: str | None = None, 
-    streaming: bool | None = None, 
-    **kwargs: Any
+    name: str, split: str | None = None, streaming: bool | None = None, **kwargs: Any
 ) -> Dataset: ...
+
 
 # Good: Frozen dataclass with slots
 @dataclass(frozen=True, slots=True)
 class CPTConfig:
     max_steps: int = 50000
     learning_rate: float = 2e-4
+
 
 # Avoid: Untyped defs (MyPy error)
 def bad_example(x):  # ERROR: missing type hints
@@ -783,9 +781,9 @@ def load_base_model(
 
 ### Module Docstrings
 ```python
-"""Model loading utilities for Baligh-1.5B v0.
+"""Model loading utilities for Baligh-1.7B v0.
 
-Handles 4-bit QLoRA loading, LoRA application/merging, 
+Handles 4-bit QLoRA loading, LoRA application/merging,
 tokenizer loading, and model preparation for training.
 """
 ```
@@ -916,10 +914,7 @@ dataset.map(fn, batched=True, num_proc=8)  # Non-streaming (full load)
 target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
 
 # ✅ CORRECT - Include MLP (SwiGLU) projections
-target_modules = [
-    "q_proj", "k_proj", "v_proj", "o_proj",
-    "gate_proj", "up_proj", "down_proj"
-]
+target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 ```
 **Missing MLP** → LoRA only adapts attention; misses MLP knowledge
 
@@ -1099,7 +1094,7 @@ greater_is_better: false
 ### 5. **Push to HF with `HF_TRANSFER`**
 ```bash
 export HF_HUB_ENABLE_HF_TRANSFER=1
-python -m src.scripts.push_to_hf --model-path release/baligh-1.5b-v0-instruct --repo-id Kandil7/Baligh-1.5B
+python -m src.scripts.push_to_hf --model-path release/Baligh-1.7B-v0-instruct --repo-id Kandil7/Baligh-1.7B
 ```
 **10x faster uploads** for multi-GB models
 
@@ -1182,4 +1177,4 @@ This documentation covers:
 3. **Code Quality Standards** - Testing, linting, CI/CD, documentation, security
 4. **Gotchas and Tips** - 10 critical gotchas, 5 performance tips, 5 debugging solutions, 8 pro tips
 
-The documentation teaches every concept from first principles and is specific to the Baligh-1.5B v0 project.
+The documentation teaches every concept from first principles and is specific to the Baligh-1.7B v0 project.

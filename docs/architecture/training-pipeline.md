@@ -6,14 +6,14 @@ Two-stage training: Continued Pretraining (CPT) then Supervised Fine-Tuning (SFT
 
 ## Base Model
 
-- Qwen2.5-1.5B Base (not Instruct)
-- 1.54B parameters, 28 layers, GQA, 32K context
-- Unsloth optimized 4-bit: unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit
+- unsloth/Qwen3-1.7B-Base (Base, not Instruct)
+- 1.7B total parameters (1.4B non-embedding), 28 layers, GQA 16Q/8KV, 32K native context
+- Library training path loads it via transformers + PEFT (Unsloth is used only in Colab notebooks)
 
 ## Quantization
 
 - 4-bit NF4 with double quantization
-- bfloat16 compute dtype
+- Compute dtype resolved per GPU: float16 on Turing (sm_75), bfloat16 on Ampere+
 - BitsAndBytesConfig
 
 ## LoRA Configuration
@@ -60,32 +60,33 @@ Two-stage training: Continued Pretraining (CPT) then Supervised Fine-Tuning (SFT
 - Packing: false
 
 ### Stage 2b: Optimized SFT (sft-stage2.yaml)
-- Max steps: 10,000 / 2 epochs
+- Max steps: 10,000
 - Learning rate: 5e-5 (lower)
-- Islamic QA weight: 15%
 - Load best model at end
 - Metric: eval_loss
 
 ## Training Infrastructure
 
-### Callbacks
-- LoggingCallback: log metrics to wandb/tensorboard
-- MemoryCallback: log GPU memory every 100 steps
-- CheckpointCallback: manage checkpoints
+### Callbacks (registered on both trainers)
+- LoggingCallback: structured log of training metrics
+- MemoryCallback: GPU memory stats + cache clear every 100 steps and at epoch end
+- Checkpointing is owned by `save_steps` + CheckpointManager (full-state saves:
+  weights + optimizer + scheduler + trainer state + RNG), not a callback
 
-### Distributed Training
-- DDP with NCCL backend
-- Gradient checkpointing enabled
-- Mixed precision: bf16
+### Precision
+- Auto-resolved per GPU capability (baligh.utils.hardware):
+  fp16 + sdpa on Turing, bf16 + flash_attention_2 on sm_80+
 
 ### Monitoring
-- Weights & Biases (primary)
-- TensorBoard (backup)
+- Weights & Biases when an API key is configured (training never blocks
+  on wandb login — falls back to tensorboard automatically)
+- TensorBoard always available
 - Log: loss, learning rate, grad norm, memory
 
 ## Post-Training
 
-1. Merge LoRA: model.merge_and_unload()
+1. Merge LoRA: load base in fp16 -> PeftModel.from_pretrained(adapter) -> merge_and_unload()
+   (adapters cannot merge into bnb-4bit layers; the merge script enforces this order)
 2. Save full model (safetensors)
-3. Quantize: GGUF (q4_k_m), AWQ (4-bit), GPTQ (4-bit)
+3. Quantize: GGUF via llama.cpp convert_hf_to_gguf.py; GPTQ requires calibration data
 4. Push to Hugging Face Hub

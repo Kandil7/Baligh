@@ -1,15 +1,13 @@
-# Base requirements for Baligh-1.5B v0
+# Base requirements for Baligh-1.7B v0
 # Core ML stack
-torch>=2.5.1
-transformers>=4.48.0
+# torch >= 2.6.0: CVE-2025-32434 (torch.load weights_only bypass RCE) fixed in 2.6
+torch>=2.6.0,<3
+# transformers >= 4.51.0: Qwen3 architecture support required by the base model
+transformers>=4.51.0,<5
 accelerate>=0.37.0
 peft>=0.14.0
-trl>=0.11.0
 datasets>=2.21.0
 huggingface-hub>=0.26.0
-
-# Unsloth for efficient training (install from git for latest)
-# unsloth @ git+https://github.com/unslothai/unsloth.git
 
 # Quantization
 bitsandbytes>=0.44.0

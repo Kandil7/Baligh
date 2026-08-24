@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.1-runtime-ubuntu22.04
+﻿FROM nvidia/cuda:12.1-runtime-ubuntu22.04
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -25,5 +25,12 @@ COPY . .
 RUN pip install -e .
 
 ENV HF_HOME=/workspace/.cache/huggingface
+# Non-root user: container compromise must not write to mounted host
+# directories as root. devel images keep build-essential for flash-attn.
+RUN useradd --create-home --uid 1000 baligh && \
+    mkdir -p /workspace/.cache/huggingface && \
+    chown -R baligh:baligh /workspace
+USER baligh
 
 CMD ["python", "-m", "src.scripts.run_eval", "--help"]
+

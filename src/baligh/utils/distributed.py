@@ -5,7 +5,6 @@ import os
 import torch
 import torch.distributed as dist
 
-from baligh.config import get_config
 from baligh.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -56,15 +55,21 @@ def setup_distributed(backend: str = "nccl") -> None:
         logger.info("Distributed already initialized")
         return
 
-    # Get config
-    config = get_config()
+    # Initialize process group.
+    # Rank/world_size come from launcher env vars (torchrun sets RANK,
+    # WORLD_SIZE, LOCAL_RANK) — not from static config, which would collide
+    # across nodes/machines.
+    world_size = int(os.environ.get("WORLD_SIZE", "1"))
+    rank = int(os.environ.get("RANK", "0"))
+    if world_size == 1:
+        logger.info("WORLD_SIZE=1 — skipping distributed init")
+        return
 
-    # Initialize process group
     dist.init_process_group(
         backend=backend,
         init_method="env://",
-        world_size=config.world_size,
-        rank=config.local_rank,
+        world_size=world_size,
+        rank=rank,
     )
 
     # Set device
@@ -110,13 +115,13 @@ def reduce_dict(input_dict: dict, average: bool = True) -> dict:
             names.append(k)
             values.append(input_dict[k])
 
-        values = torch.stack(values, dim=0)
-        dist.all_reduce(values)
+        stacked = torch.stack(values, dim=0)  # noqa: TD003
+        dist.all_reduce(stacked)
 
         if average:
-            values /= world_size
+            stacked /= world_size
 
-        return {k: v for k, v in zip(names, values, strict=False)}
+        return {k: v for k, v in zip(names, stacked.tolist(), strict=False)}
 
 
 def gather_object(obj: object) -> list:
@@ -126,7 +131,8 @@ def gather_object(obj: object) -> list:
         obj: Object to gather
 
     Returns:
-        List of objects from all processes (only on main process)
+        List of objects from all processes (returned on every rank, since
+        ``all_gather_object`` is a collective operation).
     """
     if not is_distributed():
         return [obj]

@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from baligh.training.callbacks import CheckpointCallback, LoggingCallback, MemoryCallback
 
 

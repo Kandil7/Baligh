@@ -44,9 +44,7 @@ class TestRunCidarEval:
         mock_bleu.return_value = 30.0
         mock_dataset = MagicMock()
         mock_dataset.__len__ = MagicMock(return_value=1)
-        mock_dataset.select.return_value = [
-            {"instruction": "Q", "input": "", "output": "A"}
-        ]
+        mock_dataset.select.return_value = [{"instruction": "Q", "input": "", "output": "A"}]
         mock_load.return_value = mock_dataset
 
         evaluator = MagicMock()

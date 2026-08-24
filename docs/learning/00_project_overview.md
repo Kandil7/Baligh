@@ -1,8 +1,8 @@
-# 00 — Project Overview: Baligh-1.5B v0
+# 00 — Project Overview: Baligh-1.7B v0
 
-## What Baligh-1.5B v0 Is
+## What Baligh-1.7B v0 Is
 
-**Baligh-1.5B v0** is an Arabic-first, Islamic-knowledge-specialized large language model with approximately 1.54 billion parameters. It is built on top of **Qwen2.5-1.5B Base** — a decoder-only causal language model originally trained by Alibaba on multilingual data — and is adapted to Arabic and Islamic domains through a two-stage training pipeline:
+**Baligh-1.7B v0** is an Arabic-first, Islamic-knowledge-specialized large language model with approximately 1.54 billion parameters. It is built on top of **Qwen3-1.7B Base** — a decoder-only causal language model originally trained by Alibaba on multilingual data — and is adapted to Arabic and Islamic domains through a two-stage training pipeline:
 
 1. **Continued Pretraining (CPT)** — Domain adaptation on 20–50B Arabic tokens from web, general, and Islamic corpora.
 2. **Supervised Fine-Tuning (SFT)** — Instruction tuning on 100K–500K Arabic instruction-response pairs.
@@ -38,7 +38,7 @@ Baligh fills this gap as a small, efficient, open-weight model that developers c
 
 ```mermaid
 graph TD
-    A[Qwen2.5-1.5B Base] -->|Stage 1: CPT| B[CPT-Adapted Model]
+    A[Qwen3-1.7B Base] -->|Stage 1: CPT| B[CPT-Adapted Model]
     B -->|Stage 2: SFT| C[Instruction-Tuned Model]
     C -->|Merge LoRA| D[Merged FP16 Model]
     D -->|Quantize| E[GGUF / AWQ / GPTQ]
@@ -131,4 +131,4 @@ Baligh is evaluated on:
 
 ## Summary
 
-Baligh-1.5B v0 is a complete, reproducible pipeline for building a small Arabic-specialized LLM — from raw data to deployed quantized model. It demonstrates that with QLoRA and smart data mixing, a single consumer GPU can train a useful Arabic assistant with Islamic knowledge capabilities.
+Baligh-1.7B v0 is a complete, reproducible pipeline for building a small Arabic-specialized LLM — from raw data to deployed quantized model. It demonstrates that with QLoRA and smart data mixing, a single consumer GPU can train a useful Arabic assistant with Islamic knowledge capabilities.

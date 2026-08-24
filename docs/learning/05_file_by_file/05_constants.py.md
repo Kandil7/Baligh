@@ -8,7 +8,7 @@
 ## Imports (Lines 1-3)
 
 ```python
-"""Constants and paths for Baligh-1.5B v0."""
+"""Constants and paths for Baligh-1.7B v0."""
 ```
 Line 1: Module docstring.
 
@@ -163,17 +163,17 @@ RELEASE_DIR = PROJECT_ROOT / "release"
 Line 33: Root for release artifacts.
 
 ```python
-BASE_RELEASE_DIR = RELEASE_DIR / "baligh-1.5b-v0-base"
+BASE_RELEASE_DIR = RELEASE_DIR / "Baligh-1.7B-v0-base"
 ```
 Line 34: CPT-adapted model (before SFT).
 
 ```python
-INSTRUCT_RELEASE_DIR = RELEASE_DIR / "baligh-1.5b-v0-instruct"
+INSTRUCT_RELEASE_DIR = RELEASE_DIR / "Baligh-1.7B-v0-instruct"
 ```
 Line 35: Instruction-tuned model (after SFT).
 
 ```python
-EVAL_RELEASE_DIR = RELEASE_DIR / "baligh-1.5b-v0-eval"
+EVAL_RELEASE_DIR = RELEASE_DIR / "Baligh-1.7B-v0-eval"
 ```
 Line 36: Evaluation results release.
 
@@ -183,12 +183,12 @@ Line 36: Evaluation results release.
 
 ```python
 # Model constants
-BASE_MODEL_NAME = "Qwen/Qwen2.5-1.5B"
+BASE_MODEL_NAME = "Qwen/Qwen3-1.7B"
 ```
 Line 39: Hugging Face model ID for the base model. This is the full-precision version.
 
 ```python
-BASE_MODEL_UNSLOTH = "unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit"
+BASE_MODEL_UNSLOTH = "unsloth/Qwen3-1.7B-Base"
 ```
 Line 40: Unsloth-optimized version. Pre-quantized to 4-bit with BitsAndBytes. Faster loading for QLoRA training.
 
@@ -258,10 +258,7 @@ DEFAULT_LORA_DROPOUT = 0.0
 Line 55: LoRA dropout. 0.0 = no dropout (Unsloth optimization).
 
 ```python
-TARGET_MODULES = [
-    "q_proj", "k_proj", "v_proj", "o_proj",
-    "gate_proj", "up_proj", "down_proj"
-]
+TARGET_MODULES = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 ```
 Lines 56-59: Which layers get LoRA adapters. These are ALL major linear layers in the transformer:
 - Attention: q_proj (Query), k_proj (Key), v_proj (Value), o_proj (Output)

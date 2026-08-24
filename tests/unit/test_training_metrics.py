@@ -32,9 +32,13 @@ class TestComputePerplexity:
         output.loss = torch.tensor(1.0)
         model.return_value = output
 
-        dataloader = [{"input_ids": torch.randint(0, 10, (2, 5)),
-                        "attention_mask": torch.ones(2, 5, dtype=torch.long),
-                        "labels": torch.randint(0, 10, (2, 5))}]
+        dataloader = [
+            {
+                "input_ids": torch.randint(0, 10, (2, 5)),
+                "attention_mask": torch.ones(2, 5, dtype=torch.long),
+                "labels": torch.randint(0, 10, (2, 5)),
+            }
+        ]
         ppl = compute_perplexity(model, dataloader, "cpu")
         assert ppl > 0
         assert math.isfinite(ppl)

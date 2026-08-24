@@ -8,7 +8,7 @@
 ## Imports (Lines 1-7)
 
 ```python
-"""Dataset loading for Baligh-1.5B v0."""
+"""Dataset loading for Baligh-1.7B v0."""
 ```
 Line 1: Module docstring.
 

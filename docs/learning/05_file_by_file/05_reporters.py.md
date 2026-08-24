@@ -24,7 +24,7 @@ Line 7: Create logger.
 ## generate_eval_report (Lines 10-25)
 
 ```python
-def generate_eval_report(results, output_dir, model_name="baligh-1.5b-v0"):
+def generate_eval_report(results, output_dir, model_name="Baligh-1.7B-v0"):
 ```
 
 Lines 10-11: Generate a timestamped evaluation report.

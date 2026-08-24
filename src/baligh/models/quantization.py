@@ -40,38 +40,76 @@ def quantize_gguf(
     model_path: str,
     output_path: str,
     quantization: str = "q4_k_m",
+    convert_script: str | None = None,
 ) -> None:
-    """Quantize model to GGUF format using llama.cpp.
+    """Convert a merged HF model to GGUF using llama.cpp's converter.
 
     Args:
-        model_path: Path to model.
+        model_path: Path to a MERGED fp16 model directory.
         output_path: Output GGUF file path.
-        quantization: Quantization type.
+        quantization: llama.cpp quantization type (q4_k_m, q5_k_m, q8_0...).
+        convert_script: Optional path to llama.cpp ``convert_hf_to_gguf.py``.
+
+    Raises:
+        RuntimeError: If the conversion tooling is unavailable or fails.
     """
+    import shutil
     import subprocess
+    from pathlib import Path
 
     logger.info(f"Quantizing to GGUF: {quantization}")
 
-    # Convert to GGUF using llama.cpp
-    # This requires llama.cpp to be installed
+    # Two-step pipeline: (1) convert HF -> f16 GGUF, (2) requantize to target.
+    # `llama-cpp-python` does NOT ship a converter module; the real tooling is
+    # llama.cpp's convert_hf_to_gguf.py + llama-quantize binaries.
+    script: Path | None = None
+    if convert_script:
+        script = Path(convert_script)
+    else:
+        found = shutil.which("convert_hf_to_gguf.py") or shutil.which(
+            "convert_hf_to_gguf"
+        )
+        script = Path(found) if found else None
+
+    if script is None or not script.exists():
+        raise RuntimeError(
+            "GGUF export requires llama.cpp's convert_hf_to_gguf.py. "
+            "Clone llama.cpp and pass --convert-script /path/to/convert_hf_to_gguf.py, "
+            "or install it on PATH. See docs/evaluation or release workflow for the "
+            "pinned checkout used in CI."
+        )
+
+    intermediate = str(Path(output_path).with_suffix(".f16.gguf"))
     cmd = [
         "python",
-        "-m",
-        "llama_cpp.convert",
-        "--model",
-        model_path,
+        str(script),
+        str(model_path),
         "--outfile",
-        output_path,
+        intermediate,
         "--outtype",
-        quantization,
+        "f16",
     ]
-
     logger.info(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True)
-
     if result.returncode != 0:
-        logger.error(f"GGUF quantization failed: {result.stderr}")
-        raise RuntimeError(f"GGUF quantization failed: {result.stderr}")
+        logger.error(f"GGUF conversion failed: {result.stderr}")
+        raise RuntimeError(f"GGUF conversion failed: {result.stderr}")
+
+    quantize_bin = shutil.which("llama-quantize")
+    if quantize_bin and quantization != "f16":
+        cmd = [quantize_bin, intermediate, output_path, quantization]
+        logger.info(f"Running: {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            logger.error(f"GGUF requantization failed: {result.stderr}")
+            raise RuntimeError(f"GGUF requantization failed: {result.stderr}")
+        Path(intermediate).unlink(missing_ok=True)
+    else:
+        if quantization != "f16":
+            logger.warning(
+                "llama-quantize binary not found; keeping full-precision "
+                f"f16 GGUF at {intermediate} (requested {quantization})"
+            )
 
     logger.info(f"GGUF saved to: {output_path}")
 
@@ -94,7 +132,7 @@ def quantize_awq(
         zero_point: Whether to use zero point.
         version: AWQ version.
     """
-    from autoawq import AutoAWQForCausalLM  # type: ignore[import-untyped]
+    from autoawq import AutoAWQForCausalLM  # type: ignore
     from transformers import AutoTokenizer
 
     logger.info(f"Quantizing to AWQ: {bits}-bit, group_size={group_size}")
@@ -122,17 +160,30 @@ def quantize_gptq(
     bits: int = 4,
     group_size: int = 128,
     desc_act: bool = True,
+    calibration_texts: list[str] | None = None,
 ) -> None:
-    """Quantize model using GPTQ.
+    """Quantize a model using GPTQ.
 
     Args:
-        model_path: Path to model.
+        model_path: Path to model directory.
         output_path: Output directory.
         bits: Quantization bits.
         group_size: Group size.
         desc_act: Whether to use desc_act.
+        calibration_texts: REQUIRED sample texts for calibration. GPTQ
+            without calibration produces an invalid artifact — this
+            function refuses to run without data (use domain Arabic text,
+            e.g. samples from the CPT mix).
     """
-    from auto_gptq import AutoGPTQForCausalLM  # type: ignore[import-untyped]
+    # Fail BEFORE importing heavy optional deps: no calibration data means
+    # this call can never succeed.
+    if not calibration_texts:
+        raise ValueError(
+            "GPTQ quantization requires calibration_texts (>=128 diverse "
+            "samples recommended). Load them from the CPT corpus before export."
+        )
+
+    from auto_gptq import AutoGPTQForCausalLM  # type: ignore
     from transformers import AutoTokenizer
 
     logger.info(f"Quantizing to GPTQ: {bits}-bit, group_size={group_size}")
@@ -147,6 +198,13 @@ def quantize_gptq(
             "desc_act": desc_act,
         },
     )
+
+    # Calibration MUST run before saving, or the output is not quantized.
+    examples = [
+        tokenizer(t, return_tensors="pt", truncation=True, max_length=2048)["input_ids"]
+        for t in calibration_texts
+    ]
+    model.quantize(examples)
 
     model.save_quantized(output_path, use_safetensors=True)
     tokenizer.save_pretrained(output_path)

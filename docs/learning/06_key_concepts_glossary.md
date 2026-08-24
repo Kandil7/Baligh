@@ -1,4 +1,4 @@
-# 06 — Key Concepts Glossary: Baligh-1.5B v0
+# 06 — Key Concepts Glossary: Baligh-1.7B v0
 
 ## Arabic NLP
 

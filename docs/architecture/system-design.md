@@ -2,7 +2,7 @@
 
 ## Overview
 
-Baligh-1.5B v0 follows a clean architecture pattern with clear separation of concerns.
+Baligh-1.7B v0 follows a clean architecture pattern with clear separation of concerns.
 
 ## Module Structure
 

@@ -1,4 +1,4 @@
-# Data Flow: Baligh-1.5B v0
+# Data Flow: Baligh-1.7B v0
 
 ## End-to-End Pipeline Overview
 
@@ -73,11 +73,7 @@ flowchart TD
 ### Execution Configuration
 
 ```python
-Dataset.map(
-    cleaning_fn,
-    batched=True,
-    num_proc=8
-)
+Dataset.map(cleaning_fn, batched=True, num_proc=8)
 ```
 
 ---

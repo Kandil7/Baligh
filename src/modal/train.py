@@ -1,64 +1,79 @@
-"""Modal training script for Baligh-1.5B.
+"""Modal training script for Baligh-1.7B.
 
 Usage:
     modal run src/modal/train.py --stage cpt
     modal run src/modal/train.py --stage sft --base-model /vol/training/cpt/final
-    modal run src/modal/train.py --stage cpt --resume  # auto-resume from latest checkpoint
+    modal run src/modal/train.py --stage cpt --resume  # auto-resume from latest
+
+Security notes:
+- subprocess with LIST args (no shell interpolation) — CLI params can no
+  longer inject shell commands.
+- The repo clone is checked out at a pinned branch; for production runs pin
+  a commit SHA instead of a moving branch name.
 """
 
 import modal
-from src.modal.app import app, vol, VOL_PATH
+from src.modal.app import VOL_PATH, app, vol
+
+REPO_URL = "https://github.com/Kandil7/Baligh.git"
+# Pin the ref used for training runs; replace with a commit SHA to freeze.
+REPO_REF = "develop"
+
+
+def _clone_repo(project_dir: str) -> None:
+    import subprocess
+    from pathlib import Path
+
+    if Path(project_dir).exists():
+        return
+    print(f"Cloning project ({REPO_REF})...")
+    # List args, no shell: nothing user-supplied is ever interpolated.
+    subprocess.run(
+        ["git", "clone", "--branch", REPO_REF, REPO_URL, project_dir],
+        check=True,
+    )
 
 
 @app.function(
-    gpu="a10g",  # or "a100" for larger GPUs
+    gpu="a10g",
     volumes={VOL_PATH: vol},
-    timeout=86400,  # 24 hours max
+    timeout=86400,
     secrets=[
         modal.Secret.from_name("huggingface-token"),
         modal.Secret.from_name("wandb-token", required=False),
     ],
-    cloud="aws",
 )
 def train(
     stage: str = "cpt",
-    base_model: str = None,
+    base_model: str | None = None,
     resume: bool = False,
-    config: str = None,
-    max_steps: int = None,
+    config: str | None = None,
 ):
     """Run CPT or SFT training on Modal GPU."""
     import os
-    from pathlib import Path
+    import subprocess
 
-    # Setup environment
     os.environ["HF_HOME"] = f"{VOL_PATH}/.cache/huggingface"
     os.environ["WANDB_DIR"] = f"{VOL_PATH}/wandb"
 
-    # Get HF token from secret
     hf_token = os.environ.get("HF_TOKEN")
     if hf_token:
         from huggingface_hub import login
+
         login(token=hf_token)
 
-    # Clone project if not mounted
-    project_dir = Path(VOL_PATH) / "Baligh"
-    if not project_dir.exists():
-        print("Cloning project...")
-        os.system(f"git clone https://github.com/Kandil7/Baligh.git {project_dir}")
-
+    project_dir = f"{VOL_PATH}/Baligh"
+    _clone_repo(project_dir)
     os.chdir(project_dir)
 
-    # Install dependencies
-    os.system("pip install -e . -q")
+    subprocess.run(["pip", "install", "-e", ".", "-q"], check=True)
 
-    # Determine output directory
     output_dir = f"{VOL_PATH}/training/{stage}"
 
-    # Determine checkpoint resume path
     resume_path = None
     if resume:
         from baligh.training.checkpoint import CheckpointManager
+
         manager = CheckpointManager(output_dir)
         latest = manager.get_latest_checkpoint()
         if latest:
@@ -67,32 +82,29 @@ def train(
         else:
             print("No checkpoint found, starting from scratch")
 
-    # Build command
-    if stage == "cpt":
-        data_dir = f"{VOL_PATH}/data/train_ready/cpt"
-        cmd = f"python -m src.scripts.run_cpt --data-dir {data_dir} --output-dir {output_dir}"
-        if config:
-            cmd += f" --config {config}"
-        elif max_steps:
-            # Create temp config with custom max_steps
-            cmd += f" --config configs/cpt/cpt-stage1.yaml"
-    elif stage == "sft":
-        data_dir = f"{VOL_PATH}/data/train_ready/sft"
-        cmd = f"python -m src.scripts.run_sft --data-dir {data_dir} --output-dir {output_dir}"
-        if base_model:
-            cmd += f" --base-model {base_model}"
-        if config:
-            cmd += f" --config {config}"
-    else:
+    data_dir = f"{VOL_PATH}/data/train_ready/{stage}"
+    cmd = [
+        "python",
+        "-m",
+        f"src.scripts.run_{stage}",
+        "--data-dir",
+        data_dir,
+        "--output-dir",
+        output_dir,
+    ]
+    if stage not in ("cpt", "sft"):
         raise ValueError(f"Unknown stage: {stage}")
-
+    if base_model:
+        cmd += ["--base-model", base_model]
+    if config:
+        cmd += ["--config", config]
     if resume_path:
-        cmd += f" --resume {resume_path}"
+        cmd += ["--resume", resume_path]
 
     print(f"Running: {cmd}")
-    exit_code = os.system(cmd)
+    result = subprocess.run(cmd, check=False)
+    exit_code = result.returncode
 
-    # Commit volume to persist checkpoints
     vol.commit()
 
     if exit_code != 0:
@@ -111,26 +123,35 @@ def train(
 def prepare_data(stage: str = "cpt"):
     """Prepare training data on Modal."""
     import os
-    from pathlib import Path
+    import subprocess
 
     os.environ["HF_HOME"] = f"{VOL_PATH}/.cache/huggingface"
 
     hf_token = os.environ.get("HF_TOKEN")
     if hf_token:
         from huggingface_hub import login
+
         login(token=hf_token)
 
-    project_dir = Path(VOL_PATH) / "Baligh"
-    if not project_dir.exists():
-        os.system(f"git clone https://github.com/Kandil7/Baligh.git {project_dir}")
-
+    project_dir = f"{VOL_PATH}/Baligh"
+    _clone_repo(project_dir)
     os.chdir(project_dir)
-    os.system("pip install -e . -q")
+
+    subprocess.run(["pip", "install", "-e", ".", "-q"], check=True)
 
     output_dir = f"{VOL_PATH}/data/train_ready"
-    cmd = f"python -m src.scripts.prepare_data --stage {stage} --clean --output-dir {output_dir}"
+    cmd = [
+        "python",
+        "-m",
+        "src.scripts.prepare_data",
+        "--stage",
+        stage,
+        "--clean",
+        "--output-dir",
+        output_dir,
+    ]
     print(f"Running: {cmd}")
-    os.system(cmd)
+    subprocess.run(cmd, check=True)
 
     vol.commit()
     print(f"Data preparation complete! Output: {output_dir}")
@@ -152,24 +173,23 @@ def list_checkpoints(stage: str = "cpt"):
         print(f"No checkpoints found for {stage}")
         return
 
-    print(f"\n{'='*60}")
+    print("\n" + "=" * 60)
     print(f"Checkpoints for {stage.upper()}")
-    print(f"{'='*60}")
+    print("=" * 60)
     for cp in checkpoints:
-        step = cp.get('step', 'N/A')
-        loss = cp.get('loss', 'N/A')
-        time = cp.get('global_time', 'N/A')
-        print(f"  Step {step:>6} | Loss: {loss} | Time: {time}")
-    print(f"{'='*60}\n")
+        step = cp.get("step", "N/A")
+        loss = cp.get("loss", "N/A")
+        timestamp = cp.get("global_time", "N/A")
+        print(f"  Step {step:>6} | Loss: {loss} | Time: {timestamp}")
+    print("=" * 60 + "\n")
 
 
 # Entrypoints for `modal run`
 @app.local_entrypoint()
 def main(
     stage: str = "cpt",
-    base_model: str = None,
+    base_model: str | None = None,
     resume: bool = False,
-    config: str = None,
+    config: str | None = None,
 ):
-    """Main entrypoint: modal run src/modal/train.py --stage cpt"""
     train.remote(stage=stage, base_model=base_model, resume=resume, config=config)

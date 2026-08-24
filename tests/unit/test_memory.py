@@ -1,6 +1,5 @@
 """Tests for memory utilities."""
 
-import pytest
 import torch
 
 from baligh.utils.memory import (

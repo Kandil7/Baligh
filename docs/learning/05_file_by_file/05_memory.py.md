@@ -103,7 +103,7 @@ Lines 106-108: Optimizer states (AdamW uses 2x model size for momentum and varia
 
 Lines 110-118: Activations memory:
 - batch * seq * hidden * layers * bytes * 4 (factor for intermediate activations)
-- For Qwen2.5-1.5B: hidden=2048, layers=28
+- For Qwen3-1.7B: hidden=2048, layers=28
 
 Lines 120-121: If gradient checkpointing enabled, reduce activations by ~70%.
 

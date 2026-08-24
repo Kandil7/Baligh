@@ -1,7 +1,7 @@
 # cpt_trainer.py — Complete Line-by-Line Explanation
 
 **File**: `src/baligh/training/cpt_trainer.py` (146 lines)
-**Purpose**: Continued Pretraining trainer. Adapts Qwen2.5-1.5B to Arabic domain by training on raw Arabic text using QLoRA.
+**Purpose**: Continued Pretraining trainer. Adapts Qwen3-1.7B to Arabic domain by training on raw Arabic text using QLoRA.
 
 ---
 
@@ -46,7 +46,7 @@ Line 16: Create logger.
 class CPTTrainingState:
     global_step: int = 0
     epoch: float = 0.0
-    best_loss: float = float('inf')
+    best_loss: float = float("inf")
 ```
 
 Lines 19-23: Simple dataclass to track training progress.
@@ -79,8 +79,8 @@ Line 27: Use provided config or create default CPTConfig.
 Lines 28-29: Always load model and base configs (they provide hardware/logging settings).
 
 ```python
-        self.output_dir = output_dir or self.base_config.output_dir / 'cpt'
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+self.output_dir = output_dir or self.base_config.output_dir / "cpt"
+self.output_dir.mkdir(parents=True, exist_ok=True)
 ```
 Lines 30-31: Set output directory. Create it if it doesn't exist.
 
@@ -90,12 +90,16 @@ Lines 30-31: Set output directory. Create it if it doesn't exist.
 Line 33: Set random seed for reproducibility.
 
 ```python
-        self.tokenizer = tokenizer or get_tokenizer(self.model_config.tokenizer_name, self.model_config.max_seq_length)
+self.tokenizer = tokenizer or get_tokenizer(
+    self.model_config.tokenizer_name, self.model_config.max_seq_length
+)
 ```
 Line 35: Load tokenizer if not provided.
 
 ```python
-        self.formatter = get_cpt_formatter(self.model_config.tokenizer_name, self.model_config.max_seq_length, packing=self.config.packing)
+self.formatter = get_cpt_formatter(
+    self.model_config.tokenizer_name, self.model_config.max_seq_length, packing=self.config.packing
+)
 ```
 Line 36: Create CPT formatter with packing setting from config.
 
@@ -120,8 +124,8 @@ Lines 43-44: Store datasets.
 Lines 46-47: Create training arguments and HF Trainer instance.
 
 ```python
-        logger.info('CPTTrainer initialized')
-        log_memory_stats(prefix='After trainer init')
+logger.info("CPTTrainer initialized")
+log_memory_stats(prefix="After trainer init")
 ```
 Lines 49-50: Log initialization and GPU memory usage.
 
@@ -134,9 +138,10 @@ Lines 49-50: Log initialization and GPU memory usage.
 Line 52: Alternative constructor. Takes a raw dictionary (e.g., from YAML file) instead of a CPTConfig object.
 
 ```python
-        from baligh.config import CPTConfig
-        config = CPTConfig(**config_dict.get("cpt", {}))
-        return cls(config=config, **kwargs)
+from baligh.config import CPTConfig
+
+config = CPTConfig(**config_dict.get("cpt", {}))
+return cls(config=config, **kwargs)
 ```
 Lines 54-56: Extract the "cpt" key from the dict, create a CPTConfig, pass to normal constructor.
 
@@ -148,14 +153,16 @@ Lines 54-56: Extract the "cpt" key from the dict, create a CPTConfig, pass to no
 Line 58: Core model assembly pipeline.
 
 ```python
-        model = load_base_model(
-            model_name=self.model_config.unsloth_model_name,
-            load_in_4bit=self.model_config.load_in_4bit,
-            load_in_8bit=self.model_config.load_in_8bit,
-            torch_dtype=torch.bfloat16 if self.model_config.bnb_4bit_compute_dtype == 'bfloat16' else torch.float16,
-            attn_implementation=self.model_config.attn_implementation,
-            use_cache=False,
-        )
+model = load_base_model(
+    model_name=self.model_config.unsloth_model_name,
+    load_in_4bit=self.model_config.load_in_4bit,
+    load_in_8bit=self.model_config.load_in_8bit,
+    torch_dtype=torch.bfloat16
+    if self.model_config.bnb_4bit_compute_dtype == "bfloat16"
+    else torch.float16,
+    attn_implementation=self.model_config.attn_implementation,
+    use_cache=False,
+)
 ```
 Lines 59-66: Load the base model with:
 - Unsloth 4-bit model (pre-quantized for faster loading)
@@ -189,42 +196,42 @@ Line 69: Return the prepared model.
 Line 71: Create HF TrainingArguments from config.
 
 ```python
-        return TrainingArguments(
-            output_dir=str(self.output_dir),
-            max_steps=self.config.max_steps,
-            num_train_epochs=self.config.num_train_epochs,
-            per_device_train_batch_size=self.config.per_device_train_batch_size,
-            gradient_accumulation_steps=self.config.gradient_accumulation_steps,
-            learning_rate=self.config.learning_rate,
-            weight_decay=self.config.weight_decay,
-            warmup_steps=self.config.warmup_steps,
-            lr_scheduler_type=self.config.lr_scheduler_type,
-            max_grad_norm=self.config.max_grad_norm,
-            optim=self.config.optim,
-            adam_beta1=self.config.adam_beta1,
-            adam_beta2=self.config.adam_beta2,
-            adam_epsilon=self.config.adam_epsilon,
-            logging_steps=self.config.logging_steps,
-            save_steps=self.config.save_steps,
-            save_total_limit=self.config.save_total_limit,
-            eval_steps=self.config.eval_steps,
-            evaluation_strategy=self.config.evaluation_strategy,
-            load_best_model_at_end=True,
-            metric_for_best_model='eval_loss',
-            greater_is_better=False,
-            dataloader_num_workers=self.config.dataloader_num_workers,
-            dataloader_pin_memory=self.config.dataloader_pin_memory,
-            dataloader_drop_last=self.config.dataloader_drop_last,
-            remove_unused_columns=False,
-            report_to=['wandb', 'tensorboard'] if self.base_config.wandb_project else ['tensorboard'],
-            run_name='baligh-cpt',
-            seed=self.base_config.seed,
-            data_seed=self.base_config.seed,
-            bf16=self.base_config.mixed_precision == 'bf16',
-            fp16=self.base_config.mixed_precision == 'fp16',
-            gradient_checkpointing=True,
-            ddp_find_unused_parameters=False,
-        )
+return TrainingArguments(
+    output_dir=str(self.output_dir),
+    max_steps=self.config.max_steps,
+    num_train_epochs=self.config.num_train_epochs,
+    per_device_train_batch_size=self.config.per_device_train_batch_size,
+    gradient_accumulation_steps=self.config.gradient_accumulation_steps,
+    learning_rate=self.config.learning_rate,
+    weight_decay=self.config.weight_decay,
+    warmup_steps=self.config.warmup_steps,
+    lr_scheduler_type=self.config.lr_scheduler_type,
+    max_grad_norm=self.config.max_grad_norm,
+    optim=self.config.optim,
+    adam_beta1=self.config.adam_beta1,
+    adam_beta2=self.config.adam_beta2,
+    adam_epsilon=self.config.adam_epsilon,
+    logging_steps=self.config.logging_steps,
+    save_steps=self.config.save_steps,
+    save_total_limit=self.config.save_total_limit,
+    eval_steps=self.config.eval_steps,
+    evaluation_strategy=self.config.evaluation_strategy,
+    load_best_model_at_end=True,
+    metric_for_best_model="eval_loss",
+    greater_is_better=False,
+    dataloader_num_workers=self.config.dataloader_num_workers,
+    dataloader_pin_memory=self.config.dataloader_pin_memory,
+    dataloader_drop_last=self.config.dataloader_drop_last,
+    remove_unused_columns=False,
+    report_to=["wandb", "tensorboard"] if self.base_config.wandb_project else ["tensorboard"],
+    run_name="baligh-cpt",
+    seed=self.base_config.seed,
+    data_seed=self.base_config.seed,
+    bf16=self.base_config.mixed_precision == "bf16",
+    fp16=self.base_config.mixed_precision == "fp16",
+    gradient_checkpointing=True,
+    ddp_find_unused_parameters=False,
+)
 ```
 
 Lines 72-107: Map every config field to a TrainingArguments field. Key settings:
@@ -261,17 +268,17 @@ Lines 109-119: Create the HF Trainer:
 ### train (Lines 121-131)
 
 ```python
-    def train(self, resume_from_checkpoint=None):
-        logger.info('Starting CPT training')
-        log_memory_stats(prefix='Before training')
-        
-        result = self.trainer.train(resume_from_checkpoint=resume_from_checkpoint)
-        
-        log_memory_stats(prefix='After training')
-        logger.info('Training completed: %s' % result)
-        
-        self.save_model()
-        return result
+def train(self, resume_from_checkpoint=None):
+    logger.info("Starting CPT training")
+    log_memory_stats(prefix="Before training")
+
+    result = self.trainer.train(resume_from_checkpoint=resume_from_checkpoint)
+
+    log_memory_stats(prefix="After training")
+    logger.info("Training completed: %s" % result)
+
+    self.save_model()
+    return result
 ```
 
 Lines 121-131: The training loop:
@@ -284,13 +291,13 @@ Lines 121-131: The training loop:
 ### save_model (Lines 133-139)
 
 ```python
-    def save_model(self, path=None):
-        save_path = path or self.output_dir / 'final'
-        save_path.mkdir(parents=True, exist_ok=True)
-        logger.info('Saving model to %s' % save_path)
-        self.trainer.save_model(str(save_path))
-        self.tokenizer.save_pretrained(str(save_path))
-        logger.info('Model saved')
+def save_model(self, path=None):
+    save_path = path or self.output_dir / "final"
+    save_path.mkdir(parents=True, exist_ok=True)
+    logger.info("Saving model to %s" % save_path)
+    self.trainer.save_model(str(save_path))
+    self.tokenizer.save_pretrained(str(save_path))
+    logger.info("Model saved")
 ```
 
 Lines 133-139: Save the model and tokenizer:
@@ -303,11 +310,17 @@ Lines 133-139: Save the model and tokenizer:
 ## train_cpt Convenience Function (Lines 141-146)
 
 ```python
-def train_cpt(train_dataset, eval_dataset=None, output_dir=None, resume_from_checkpoint=None, config=None):
+def train_cpt(
+    train_dataset, eval_dataset=None, output_dir=None, resume_from_checkpoint=None, config=None
+):
     if config:
-        trainer = CPTTrainer.from_config(config, train_dataset=train_dataset, eval_dataset=eval_dataset, output_dir=output_dir)
+        trainer = CPTTrainer.from_config(
+            config, train_dataset=train_dataset, eval_dataset=eval_dataset, output_dir=output_dir
+        )
     else:
-        trainer = CPTTrainer(train_dataset=train_dataset, eval_dataset=eval_dataset, output_dir=output_dir)
+        trainer = CPTTrainer(
+            train_dataset=train_dataset, eval_dataset=eval_dataset, output_dir=output_dir
+        )
     return trainer.train(resume_from_checkpoint=resume_from_checkpoint)
 ```
 

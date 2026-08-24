@@ -1,4 +1,4 @@
-# Evaluation requirements for Baligh-1.5B v0
+# Evaluation requirements for Baligh-1.7B v0
 -r base.txt
 
 # Evaluation metrics

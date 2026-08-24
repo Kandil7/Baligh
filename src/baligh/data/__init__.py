@@ -1,4 +1,4 @@
-"""Data package for Baligh-1.5B v0."""
+"""Data package for Baligh-1.7B v0."""
 
 from baligh.data.cleaner import CleaningPipeline, deduplicate_dataset, get_cleaning_pipeline
 from baligh.data.datasets import (
@@ -12,9 +12,11 @@ from baligh.data.datasets import (
     load_cpt_datasets,
     load_eval_datasets,
     load_sft_datasets,
+    standardize_cpt_dataset,
+    standardize_sft_dataset,
 )
 from baligh.data.formatter import PromptFormatter, get_cpt_formatter, get_sft_formatter
-from baligh.data.loader import load_dataset_by_name
+from baligh.data.loader import list_registered_names, load_dataset_by_name
 from baligh.data.mixer import (
     DatasetMixer,
     get_cpt_mixer,
@@ -32,6 +34,7 @@ from baligh.data.validators import (
 
 __all__ = [
     "load_dataset_by_name",
+    "list_registered_names",
     "CleaningPipeline",
     "get_cleaning_pipeline",
     "deduplicate_dataset",
@@ -58,4 +61,6 @@ __all__ = [
     "load_cpt_datasets",
     "load_sft_datasets",
     "load_eval_datasets",
+    "standardize_cpt_dataset",
+    "standardize_sft_dataset",
 ]

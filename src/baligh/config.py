@@ -1,4 +1,4 @@
-"""Configuration management for Baligh-1.5B v0."""
+"""Configuration management for Baligh-1.7B v0."""
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -31,7 +31,9 @@ class BaseConfig(BaseSettings):
 
     # Hardware
     device: Literal["cuda", "cpu", "mps"] = "cuda"
-    mixed_precision: Literal["fp16", "bf16", "no"] = "bf16"
+    # fp16 works on all target GPUs (Turing sm_75 included); bf16 needs
+    # sm_80+. Use baligh.utils.hardware.resolve_precision() to auto-select.
+    mixed_precision: Literal["fp16", "bf16", "no"] = "fp16"
     gradient_checkpointing: bool = True
 
     # Distributed
@@ -42,7 +44,7 @@ class BaseConfig(BaseSettings):
     # Logging
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "text"] = "text"
-    wandb_project: str | None = "baligh-1.5b"
+    wandb_project: str | None = "Baligh-1.7B"
     wandb_entity: str | None = None
     wandb_api_key: str | None = None
 
@@ -60,10 +62,13 @@ class BaseConfig(BaseSettings):
 class ModelConfig:
     """Model architecture and loading configuration."""
 
-    # Base model
-    model_name: str = "Qwen/Qwen2.5-1.5B"
-    unsloth_model_name: str = "unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit"
-    trust_remote_code: bool = True
+    # Base model — single source of truth.
+    # Baligh-1.7B v0 fine-tunes unsloth/Qwen3-1.7B-Base
+    # (1.7B params, 28 layers, GQA 16Q/8KV, 32K native context).
+    model_name: str = "unsloth/Qwen3-1.7B-Base"
+    # Only enable per-model after verifying the repo is trusted; arbitrary
+    # Hub repos can execute code at load time.
+    trust_remote_code: bool = False
 
     # Tokenizer
     tokenizer_name: str | None = None  # None = same as model
@@ -71,18 +76,21 @@ class ModelConfig:
     padding_side: Literal["left", "right"] = "right"
     truncation_side: Literal["left", "right"] = "right"
 
-    # Quantization
+    # Quantization.
+    # float16 compute dtype is safe on all target GPUs; bfloat16 requires sm_80+.
     load_in_4bit: bool = True
     load_in_8bit: bool = False
-    bnb_4bit_compute_dtype: str = "bfloat16"
+    bnb_4bit_compute_dtype: str = "float16"
     bnb_4bit_quant_type: str = "nf4"
     bnb_4bit_use_double_quant: bool = True
 
     # Model config
     use_cache: bool = False  # Disable for training
-    attn_implementation: str | None = "flash_attention_2"  # or "sdpa"
+    # None = auto-detect: flash_attention_2 on sm_80+, sdpa otherwise
+    # (see baligh.utils.hardware.resolve_attn_implementation).
+    attn_implementation: str | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.tokenizer_name is None:
             object.__setattr__(self, "tokenizer_name", self.model_name)
 
@@ -128,7 +136,6 @@ class CPTConfig:
         "hadith_datasets",
         "quran_qa",
         "quran_md",
-        "arabic_islamic_texts",
     )
 
     # Training
@@ -153,7 +160,7 @@ class CPTConfig:
     save_steps: int = 500
     save_total_limit: int = 3
     eval_steps: int = 500
-    evaluation_strategy: Literal["no", "steps", "epoch"] = "steps"
+    eval_strategy: Literal["no", "steps", "epoch"] = "steps"
 
     # Data loading
     dataloader_num_workers: int = 4
@@ -175,9 +182,8 @@ class SFTConfig:
         default_factory=lambda: {
             "cidar": 0.40,
             "evol_instruct_arabic": 0.35,
-            "gazelle": 0.10,
+            "gazelle": 0.15,
             "summarization": 0.10,
-            "islamic_qa": 0.05,
         }
     )
 
@@ -207,7 +213,7 @@ class SFTConfig:
     save_steps: int = 250
     save_total_limit: int = 3
     eval_steps: int = 250
-    evaluation_strategy: Literal["no", "steps", "epoch"] = "steps"
+    eval_strategy: Literal["no", "steps", "epoch"] = "steps"
     load_best_model_at_end: bool = True
     metric_for_best_model: str = "eval_loss"
     greater_is_better: bool = False
@@ -226,18 +232,18 @@ class EvalConfig:
     eval_datasets: tuple[str, ...] = (
         "mmlu_arabic",
         "cidar_eval",
-        "cidar_mcq",
         "mr_tydi_arabic",
-        "islamic_qa_custom",
     )
 
-    # Generation
+    # Generation.
+    # Greedy decoding by default: benchmarks must be reproducible. Sampling
+    # belongs to interactive inference, not measurement.
     max_new_tokens: int = 512
     temperature: float = 0.7
     top_p: float = 0.9
     top_k: int = 50
     repetition_penalty: float = 1.1
-    do_sample: bool = True
+    do_sample: bool = False
     num_beams: int = 1
 
     # Perplexity
@@ -281,7 +287,7 @@ class QuantizationConfig:
 
 
 def get_config() -> BaseConfig:
-    """Get the base configuration singleton."""
+    """Get the base configuration (parses .env each call)."""
     return BaseConfig()
 
 

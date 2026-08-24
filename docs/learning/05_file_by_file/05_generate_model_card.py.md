@@ -35,7 +35,7 @@ CLI entry point for generating Hugging Face model cards with evaluation scores.
 ```bash
 # Generate model card with all scores
 python -m src.scripts.generate_model_card \
-    --output release/baligh-1.5b-v0-instruct/MODEL_CARD.md \
+    --output release/Baligh-1.7B-v0-instruct/MODEL_CARD.md \
     --mmlu-score "65.2" \
     --cidar-rouge "42.1" \
     --islamic-rouge "38.5" \
@@ -43,7 +43,7 @@ python -m src.scripts.generate_model_card \
 
 # Generate with TBD scores (fill in later)
 python -m src.scripts.generate_model_card \
-    --output release/baligh-1.5b-v0-instruct/MODEL_CARD.md
+    --output release/Baligh-1.7B-v0-instruct/MODEL_CARD.md
 ```
 
 ---

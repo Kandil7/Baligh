@@ -42,9 +42,9 @@ install-eval:
 	pip install -e .
 
 clean:
-	rm -rf build/ dist/ *.egg-info/ .pytest_cache/ .mypy_cache/ .ruff_cache/ htmlcov/ .coverage
-	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
-	find . -type f -name *.pyc -delete
+	python -c "import shutil,pathlib; [shutil.rmtree(p, ignore_errors=True) or pathlib.Path('.').joinpath(p).unlink(missing_ok=True) for p in ['build','dist','htmlcov','.pytest_cache','.mypy_cache','.ruff_cache']]"
+	python -c "import pathlib; [p.unlink(missing_ok=True) for p in [pathlib.Path('.coverage'), *pathlib.Path('.').rglob('*.pyc')]]"
+	python -c "import shutil,pathlib; [shutil.rmtree(p, ignore_errors=True) for p in list(pathlib.Path('.').rglob('__pycache__'))+list(pathlib.Path('.').glob('*.egg-info'))]"
 
 test:
 	pytest tests/ -v --cov=src/baligh --cov-fail-under=80
@@ -75,16 +75,16 @@ eval:
 	python -m src.scripts.run_eval --model-path training/sft/final --output-dir eval/results
 
 merge:
-	python -m src.scripts.merge_lora --base-model training/cpt/final --adapter-path training/sft/final --output-dir release/baligh-1.5b-v0-instruct
+	python -m src.scripts.merge_lora --base-model training/cpt/final --adapter-path training/sft/final --output-dir release/Baligh-1.7B-v0-instruct
 
 quantize:
-	python -m src.scripts.quantize --model-path release/baligh-1.5b-v0-instruct --output-dir release/baligh-1.5b-v0-instruct-gguf --method gguf
+	python -m src.scripts.quantize --model-path release/Baligh-1.7B-v0-instruct --output-dir release/Baligh-1.7B-v0-instruct-gguf --method gguf
 
 push:
-	python -m src.scripts.push_to_hf --model-path release/baligh-1.5b-v0-instruct --repo-id baligh/Baligh-1.5B-v0-instruct
+	python -m src.scripts.push_to_hf --model-path release/Baligh-1.7B-v0-instruct --repo-id Kandil7/Baligh-1.7B
 
 release:
-	python -m src.scripts.generate_model_card --output release/baligh-1.5b-v0-instruct/README.md
+	python -m src.scripts.generate_model_card --output release/Baligh-1.7B-v0-instruct/README.md
 
 docker-cpt:
 	docker build -f docker/Dockerfile.cpt -t baligh-cpt .

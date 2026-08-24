@@ -1,7 +1,7 @@
 [project]
 name = "baligh"
-version = "0.1.0"
-description = "Baligh-1.5B: Arabic-first LLM with Islamic knowledge specialization"
+version = "0.2.0"
+description = "Baligh-1.7B: Arabic-first LLM with Islamic knowledge specialization"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "Apache-2.0"}
@@ -12,7 +12,7 @@ keywords = [
     "llm",
     "arabic",
     "islamic",
-    "qwen2.5",
+    "qwen3",
     "continued-pretraining",
     "instruction-tuning",
     "unsloth",
@@ -28,14 +28,12 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "torch>=2.5.1",
-    "transformers>=4.48.0",
+    "torch>=2.6.0,<3",
+    "transformers>=4.51.0,<5",
     "accelerate>=0.37.0",
     "peft>=0.14.0",
-    "trl>=0.11.0",
     "datasets>=2.21.0",
     "huggingface-hub>=0.26.0",
-    "unsloth @ git+https://github.com/unslothai/unsloth.git",
     "bitsandbytes>=0.44.0",
     "pydantic>=2.9.0",
     "pydantic-settings>=2.5.0",
@@ -63,6 +61,8 @@ dev = [
     "pyright>=1.1.380",
     "pre-commit>=3.8.0",
     "isort>=5.13.0",
+    "types-PyYAML>=6.0.0",
+    "types-tqdm>=4.66.0",
 ]
 training = [
     "deepspeed>=0.15.0",
@@ -114,6 +114,8 @@ extend-exclude = '''
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -132,12 +134,19 @@ ignore = [
     "B008",  # do not use mutable data structures for defaults
     "C408",  # do not use list comprehension for side effects
 ]
-[tool.ruff.per-file-ignores]
-"tests/*" = ["S101", "S106"]
+[tool.ruff.lint.per-file-ignores]
+# Tests: mock conventions use uppercase names, fixtures are intentionally
+# accepted-but-unused, and results are often asserted via mock calls.
+"tests/*" = ["S101", "S106", "N803", "N806", "ARG001", "ARG002", "F841", "SIM117"]
 "src/scripts/*" = ["T201"]
-"src/notebooks/*" = ["T201", "E501"]
+"colab_cli/*" = ["T201"]
+# HF TrainerCallback methods receive a fixed argument signature; unused
+# args/state/control are unavoidable there.
 "src/baligh/training/callbacks.py" = ["ARG002"]
-"src/baligh/training/sft_trainer.py" = ["ARG001"]
+# seed_worker(worker_id) matches torch DataLoader's required signature.
+"src/baligh/utils/seeding.py" = ["ARG001"]
+# Modal functions are CLI entry points; printing IS the interface.
+"src/modal/*" = ["T201"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -146,7 +155,9 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.mypy]
-python_version = "3.11"
+# Parse target 3.12: numpy>=2.x stubs use PEP 695 syntax that fails to parse
+# at 3.11. Our own code remains 3.11-compatible (verified by CI on 3.11).
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -158,6 +169,29 @@ ignore_missing_imports = false
 namespace_packages = true
 explicit_package_bases = true
 mypy_path = "src"
+exclude = ["src/modal", "colab_cli"]
+
+[[tool.mypy.overrides]]
+# Third-party libs without stubs or py.typed markers.
+module = [
+    "datasets.*",
+    "tqdm.*",
+    "bert_score.*",
+    "datasketch.*",
+    "autoawq.*",
+    "auto_gptq.*",
+    "unsloth.*",
+    "rouge_score.*",
+    "sacrebleu.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# numpy>=2 stubs use PEP 695 `type` statements, unparseable when mypy
+# targets 3.11. Skip analyzing them; our usage is typed at call sites.
+module = ["numpy.*"]
+follow_imports = "skip"
+ignore_errors = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

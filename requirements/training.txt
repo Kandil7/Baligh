@@ -1,14 +1,18 @@
-# Training-specific requirements for Baligh-1.5B v0
+# Training-specific requirements for Baligh-1.7B v0
 -r base.txt
 
 # Distributed training
 deepspeed>=0.15.0
 
-# Flash attention for faster training
+# Flash attention for faster training (Ampere+/sm_80 only; auto-fallback to
+# sdpa on Turing via baligh.utils.hardware)
 flash-attn>=2.6.0
 
 # Memory efficient attention
 xformers>=0.0.28
 
-# Unsloth (install from git for latest features)
-unsloth @ git+https://github.com/unslothai/unsloth.git
+# Unsloth — Colab notebooks only; the library training path uses
+# transformers + PEFT directly. Pinned to PyPI releases (NOT git main):
+# an unpinned git dependency executes arbitrary setup code inside
+# environments that hold HF/W&B tokens. Floor guarantees Qwen3 support.
+unsloth>=2026.6.0,<2027

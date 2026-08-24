@@ -1,20 +1,32 @@
 #!/usr/bin/env python3
-"""Run CPT training for Baligh-1.5B v0."""
+"""Run CPT training for Baligh-1.7B."""
 
 import argparse
+from pathlib import Path
 
 import yaml
-from datasets import load_from_disk
+from datasets import DatasetDict, load_from_disk
 
 from baligh.training import train_cpt
 from baligh.training.checkpoint import CheckpointManager
 from baligh.utils.logging import get_logger, setup_logging
+from baligh.utils.seeding import set_seed
 
 logger = get_logger(__name__)
 
 
+def split_dataset_dict(obj):
+    """load_from_disk returns a DatasetDict for stage directories; pick
+    the train/eval splits explicitly instead of passing a dict to Trainer."""
+    if isinstance(obj, DatasetDict):
+        train = obj["train"]
+        eval_ds = obj.get("eval", obj.get("test"))
+        return train, eval_ds
+    return obj, None
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Run CPT training for Baligh-1.5B")
+    parser = argparse.ArgumentParser(description="Run CPT training for Baligh-1.7B")
     parser.add_argument("--data-dir", type=str, required=True, help="Path to prepared CPT data")
     parser.add_argument("--output-dir", type=str, default="training/cpt", help="Output directory")
     parser.add_argument(
@@ -29,14 +41,21 @@ def main():
     parser.add_argument("--config", type=str, default=None, help="YAML config file path")
     args = parser.parse_args()
     setup_logging()
+    set_seed()
+
+    data_path = Path(args.data_dir)
+    if not data_path.exists():
+        raise FileNotFoundError(f"Training data not found: {data_path}")
 
     logger.info(f"Loading training data from {args.data_dir}")
-    train_dataset = load_from_disk(args.data_dir)
+    loaded = load_from_disk(str(data_path))
+    train_dataset, disk_eval = split_dataset_dict(loaded)
 
-    eval_dataset = None
+    eval_dataset = disk_eval
     if args.eval_data:
         logger.info(f"Loading eval data from {args.eval_data}")
-        eval_dataset = load_from_disk(args.eval_data)
+        eval_loaded = load_from_disk(args.eval_data)
+        _, eval_dataset = split_dataset_dict(eval_loaded)
 
     config = None
     if args.config:
@@ -48,11 +67,11 @@ def main():
         if args.resume == "":
             manager = CheckpointManager(args.output_dir)
             latest = manager.get_latest_checkpoint()
-            if latest:
+            if latest and manager.validate_checkpoint(latest):
                 resume_from_checkpoint = str(latest)
                 logger.info(f"Auto-resuming from: {resume_from_checkpoint}")
             else:
-                logger.info("No checkpoint found, starting from scratch")
+                logger.info("No valid checkpoint found, starting from scratch")
         else:
             resume_from_checkpoint = args.resume
 

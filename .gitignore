@@ -55,9 +55,10 @@ checkpoint-*/
 wandb/
 tensorboard/
 
-# Environment
+# Environment (all variants: .env, .env.local, .env.production, ...)
 .env
-.env.local
+.env.*
+!.env.example
 
 # OS
 .DS_Store

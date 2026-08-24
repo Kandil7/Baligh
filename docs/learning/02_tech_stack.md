@@ -1,4 +1,4 @@
-# 02 — Tech Stack: Baligh-1.5B v0
+# 02 — Tech Stack: Baligh-1.7B v0
 
 ## Core ML Framework
 
@@ -178,7 +178,7 @@ requirements/
 
 | Decision | Reason |
 |----------|--------|
-| Qwen2.5-1.5B base | Best open Arabic support at 1.5B scale, GQA efficiency |
+| Qwen3-1.7B base | Best open Arabic support at 1.5B scale, GQA efficiency |
 | QLoRA over full fine-tune | 75% VRAM reduction, comparable quality |
 | TRL SFTTrainer | Built-in response-only loss, packing, chat template support |
 | Loguru over stdlib logging | Cleaner API, built-in rotation, JSON serialization |

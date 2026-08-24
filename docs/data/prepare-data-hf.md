@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide covers the complete data preparation pipeline for Baligh-1.5B v0,
+This guide covers the complete data preparation pipeline for Baligh-1.7B v0,
 from downloading Hugging Face datasets to producing train-ready corpora.
 
 ## Pipeline Stages

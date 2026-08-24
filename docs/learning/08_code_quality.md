@@ -1,4 +1,4 @@
-# 08 — Code Quality: Baligh-1.5B v0
+# 08 — Code Quality: Baligh-1.7B v0
 
 ## Code Style
 

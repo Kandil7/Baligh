@@ -4,7 +4,7 @@
 
 | Parameter | Value |
 |-----------|-------|
-| Base Model | Qwen2.5-1.5B |
+| Base Model | Qwen3-1.7B |
 | Parameters | 1.54B |
 | Layers | 28 |
 | Hidden Size | 2048 |

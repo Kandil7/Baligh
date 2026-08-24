@@ -1,4 +1,4 @@
-# 09 — Gotchas and Tips: Baligh-1.5B v0
+# 09 — Gotchas and Tips: Baligh-1.7B v0
 
 ## Common Gotchas
 
@@ -104,6 +104,7 @@ The `MemoryCallback` clears CUDA cache every 100 steps. For custom training loop
 
 ```python
 from baligh.utils.memory import clear_memory
+
 clear_memory()  # gc.collect() + cuda.empty_cache()
 ```
 
@@ -143,6 +144,7 @@ python -m src.scripts.prepare_data --stage cpt --clean --max-samples 100
 
 ```python
 from baligh.data.validators import get_dataset_stats
+
 stats = get_dataset_stats(dataset, text_column="text")
 print(stats)  # {count, mean_length, median_length, min_length, max_length, total_chars}
 ```
@@ -151,6 +153,7 @@ print(stats)  # {count, mean_length, median_length, min_length, max_length, tota
 
 ```python
 from baligh.utils.memory import log_memory_stats
+
 log_memory_stats(prefix="Debug checkpoint")
 ```
 
@@ -171,6 +174,7 @@ python -m src.scripts.run_cpt --data-dir data/train_ready/cpt --resume training/
 
 ```python
 from baligh.models.loader import get_model_info
+
 info = get_model_info(model)
 print(info)  # {model_type, hidden_size, num_layers, total_params, trainable_params, ...}
 ```
@@ -196,7 +200,7 @@ python -m src.scripts.quantize --model-path merged_model --output-dir ./awq --me
 ### 3. Push to Hugging Face
 
 ```bash
-python -m src.scripts.push_to-hf --model-path ./gguf --repo-id Kandil7/Baligh-1.5B --token $HF_TOKEN
+python -m src.scripts.push_to-hf --model-path ./gguf --repo-id Kandil7/Baligh-1.7B --token $HF_TOKEN
 ```
 
 ### 4. Generate Model Card

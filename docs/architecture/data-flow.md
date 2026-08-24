@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the data flow through the Baligh-1.5B v0 training pipeline.
+This document describes the data flow through the Baligh-1.7B v0 training pipeline.
 
 ## Phase 1: Data Ingestion
 
@@ -63,7 +63,8 @@ This document describes the data flow through the Baligh-1.5B v0 training pipeli
 - Packing enabled for efficiency
 
 ### SFT Formatting
-- Chat template (Qwen2.5 format)
+- Chat template (Qwen3 ChatML format; valid-Jinja fallback installed for
+  template-less base tokenizers)
 - Messages: system -> user -> assistant
 - Response-only loss masking
 - Packing disabled (preserve conversation structure)

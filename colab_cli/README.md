@@ -1,4 +1,4 @@
-# Colab CLI for Baligh-1.5B v0
+# Colab CLI for Baligh-1.7B v0
 
 Run training on Google Colab free GPUs with Hugging Face Hub for storage (no Google Drive needed).
 

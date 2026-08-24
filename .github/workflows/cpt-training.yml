@@ -3,35 +3,46 @@ name: CPT Training
 on:
   workflow_dispatch:
     inputs:
-      stage:
-        description: "CPT Stage"
+      config:
+        description: "Config file (configs/cpt/*.yaml)"
         type: choice
-        options: [stage1, stage2, islamic]
-        default: stage1
+        options: [configs/cpt/cpt-stage1.yaml, configs/cpt/cpt-stage2.yaml, configs/cpt/cpt-islamic.yaml]
+        default: configs/cpt/cpt-stage1.yaml
       resume:
-        description: "Resume from checkpoint"
+        description: "Auto-resume from latest checkpoint"
         type: boolean
         default: false
+
+permissions:
+  contents: read
 
 jobs:
   cpt-training:
     runs-on: self-hosted
-    env:
-      WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      # Secrets scoped per step so install steps never see tokens.
       - name: Install dependencies
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
         run: |
           pip install -r requirements/training.txt
           pip install -e .
       - name: Run CPT Training
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+          CPT_CONFIG: ${{ inputs.config }}
         run: |
+          ARGS=""
+          if [ "${{ inputs.resume }}" = "true" ]; then ARGS="--resume"; fi
           python -m src.scripts.run_cpt \
             --data-dir data/train_ready/cpt \
             --output-dir training/cpt \
-            --eval-data data/train_ready/cpt_eval
+            --eval-data data/train_ready/cpt_eval \
+            --config "$CPT_CONFIG" $ARGS

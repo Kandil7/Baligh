@@ -81,37 +81,47 @@ def estimate_training_memory(
     model_params: int,
     batch_size: int,
     seq_length: int,
-    precision: str = "bf16",
+    precision: str = "fp16",
     optimizer: str = "adamw",
     gradient_checkpointing: bool = False,
+    trainable_fraction: float | None = None,
 ) -> dict:
     """Estimate memory requirements for training.
 
     Args:
-        model_params: Number of model parameters
-        batch_size: Per-device batch size
-        seq_length: Sequence length
-        precision: Model precision (fp16, bf16, fp32)
-        optimizer: Optimizer type
-        gradient_checkpointing: Whether gradient checkpointing is enabled
+        model_params: Number of model parameters.
+        batch_size: Per-device batch size.
+        seq_length: Sequence length.
+        precision: Model precision (fp16, bf16, fp32, int8, int4).
+        optimizer: Optimizer type (adamw, adamw_8bit, adam, sgd).
+        gradient_checkpointing: Whether gradient checkpointing is enabled.
+        trainable_fraction: Fraction of parameters receiving gradients and
+            optimizer states (e.g. ~0.01 for LoRA r=16 on a 1.5B model).
+            If None, assumed to be 1.0 (full fine-tuning).
 
     Returns:
-        Dictionary with memory estimates in GB
+        Dictionary with memory estimates in GB.
     """
     # Model weights
     bytes_per_param = {"fp16": 2, "bf16": 2, "fp32": 4, "int8": 1, "int4": 0.5}
     model_mem = model_params * bytes_per_param.get(precision, 2) / 1e9
 
-    # Gradients (same size as model)
-    grad_mem = model_mem
+    fraction = trainable_fraction if trainable_fraction is not None else 1.0
+    fraction = max(0.0, min(1.0, fraction))
 
-    # Optimizer states (AdamW: 2x model size for fp32 states)
-    opt_multiplier = {"adamw": 2, "adamw_8bit": 1, "sgd": 1, "adam": 2}
-    opt_mem = model_mem * opt_multiplier.get(optimizer, 2)
+    # Gradients only exist for trainable params (LoRA adapters in QLoRA).
+    grad_mem = model_mem * fraction
+
+    # Optimizer states apply to trainable params only. AdamW keeps fp32
+    # moments (~2x fp16 param size); scale relative to the *trainable* share.
+    opt_multiplier = {"adamw": 8, "adamw_8bit": 4, "sgd": 4, "adam": 8}
+    opt_mem = (model_params * fraction * bytes_per_param.get("fp32", 4) / 1e9) * (
+        opt_multiplier.get(optimizer, 8) / 8
+    )
 
     # Activations
     # Rough estimate: batch * seq * hidden * layers * bytes
-    # For Qwen2.5-1.5B: hidden=2048, layers=28
+    # For Qwen3-1.7B: hidden=2048, layers=28
     hidden_size = 2048
     num_layers = 28
     activation_bytes = bytes_per_param.get(precision, 2)
@@ -126,35 +136,46 @@ def estimate_training_memory(
     total = model_mem + grad_mem + opt_mem + activation_mem
 
     return {
-        "model_gb": model_mem,
-        "gradients_gb": grad_mem,
-        "optimizer_gb": opt_mem,
-        "activations_gb": activation_mem,
-        "total_gb": total,
+        "model_gb": round(model_mem, 3),
+        "gradients_gb": round(grad_mem, 3),
+        "optimizer_gb": round(opt_mem, 3),
+        "activations_gb": round(activation_mem, 3),
+        "total_gb": round(total, 3),
+        "assumes": ("full fine-tuning" if fraction == 1.0 else f"trainable_fraction={fraction}"),
     }
 
 
 class MemoryTracker:
     """Track memory usage during training."""
 
-    def __init__(self, device: int | torch.device | None = None):
-        self.device = device or torch.cuda.current_device()
-        self.snapshots = []
+    def __init__(self, device: int | torch.device | None = None) -> None:
+        resolved: int | torch.device | None
+        if device is None:
+            resolved = torch.cuda.current_device() if torch.cuda.is_available() else None
+        else:
+            resolved = device
+        self.device: int | torch.device | None = resolved
+        self.snapshots: list[dict] = []
 
     def snapshot(self, label: str) -> dict:
-        """Take a memory snapshot."""
+        """Take a memory snapshot (no-op dict on CPU-only systems)."""
         stats = log_memory_stats(self.device, prefix=f"[{label}]")
+        if not stats:
+            # CPU-only: nothing measurable; keep an empty placeholder so
+            # summary() can distinguish "no data" from real zero usage.
+            return {}
         stats["label"] = label
         self.snapshots.append(stats)
         return stats
 
     def summary(self) -> dict:
         """Get memory usage summary."""
-        if not self.snapshots:
+        usable = [s for s in self.snapshots if s]
+        if not usable:
             return {}
 
-        allocated = [s["allocated_gb"] for s in self.snapshots]
-        reserved = [s["reserved_gb"] for s in self.snapshots]
+        allocated = [s["allocated_gb"] for s in usable]
+        reserved = [s["reserved_gb"] for s in usable]
 
         return {
             "peak_allocated_gb": max(allocated),

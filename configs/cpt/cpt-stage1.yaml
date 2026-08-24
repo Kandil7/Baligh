@@ -1,4 +1,4 @@
-cpt:
+﻿cpt:
   # Stage 1: Quick proof of pipeline
   dataset_mix:
     arabicweb24: 0.7
@@ -17,6 +17,6 @@ cpt:
   logging_steps: 10
   save_steps: 100
   eval_steps: 100
-  evaluation_strategy: "steps"
+  eval_strategy: "steps"
   dataloader_num_workers: 4
   packing: true

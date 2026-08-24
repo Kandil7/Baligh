@@ -8,7 +8,7 @@
 ## Imports (Lines 1-5)
 
 ```python
-"""Dataset registry for Baligh-1.5B v0."""
+"""Dataset registry for Baligh-1.7B v0."""
 ```
 Line 1: Module docstring.
 
@@ -169,7 +169,7 @@ Lines 50-52: Mr. TyDi Arabic. Retrieval-augmented QA benchmark. Note `'name': 'a
 ```python
 def get_dataset_config(name):
     if name not in DATASETS:
-        raise ValueError('Unknown dataset: %s' % name)
+        raise ValueError("Unknown dataset: %s" % name)
     return DATASETS[name]
 ```
 Lines 55-58: Get configuration for a single dataset by name. Raises ValueError if the name doesn't exist.
@@ -177,32 +177,32 @@ Lines 55-58: Get configuration for a single dataset by name. Raises ValueError i
 ```python
 def list_datasets(dataset_type=None):
     if dataset_type:
-        return {k: v for k, v in DATASETS.items() if v.get('type') == dataset_type}
+        return {k: v for k, v in DATASETS.items() if v.get("type") == dataset_type}
     return DATASETS
 ```
 Lines 60-63: List datasets, optionally filtered by type. Uses a dict comprehension to filter.
 
 ```python
 def get_cpt_datasets():
-    return list_datasets('cpt')
+    return list_datasets("cpt")
 ```
 Lines 65-66: Convenience function for CPT datasets.
 
 ```python
 def get_sft_datasets():
-    return list_datasets('sft')
+    return list_datasets("sft")
 ```
 Lines 68-69: Convenience function for SFT datasets.
 
 ```python
 def get_eval_datasets():
-    return list_datasets('eval')
+    return list_datasets("eval")
 ```
 Lines 71-72: Convenience function for eval datasets.
 
 ```python
 def get_islamic_datasets():
-    return list_datasets('cpt_islamic')
+    return list_datasets("cpt_islamic")
 ```
 Lines 74-75: Convenience function for Islamic CPT datasets.
 

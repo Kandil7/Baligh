@@ -1,4 +1,4 @@
-# 04 — Design Patterns: Baligh-1.5B v0
+# 04 — Design Patterns: Baligh-1.7B v0
 
 ## Pattern Catalog
 
@@ -24,6 +24,7 @@ The `DATASETS` dictionary maps string names to configuration dictionaries. Each 
 **Usage**:
 ```python
 from baligh.data.datasets import DATASETS, get_cpt_datasets
+
 cpt = get_cpt_datasets()  # Returns only type='cpt' entries
 ```
 

@@ -55,7 +55,9 @@ def create_quantization_config(custom_config=None):
     if mcfg.load_in_4bit:
         return BitsAndBytesConfig(
             load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.bfloat16 if mcfg.bnb_4bit_compute_dtype == "bfloat16" else torch.float16,
+            bnb_4bit_compute_dtype=torch.bfloat16
+            if mcfg.bnb_4bit_compute_dtype == "bfloat16"
+            else torch.float16,
             bnb_4bit_quant_type=mcfg.bnb_4bit_quant_type,
             bnb_4bit_use_double_quant=mcfg.bnb_4bit_use_double_quant,
         )

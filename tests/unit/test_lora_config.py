@@ -1,6 +1,5 @@
 """Tests for LoRA configuration."""
 
-import pytest
 from peft import LoraConfig
 
 from baligh.training.lora_config import create_lora_config
@@ -26,6 +25,7 @@ class TestCreateLoraConfig:
 
     def test_custom_config(self):
         from baligh.config import LoRAConfig
+
         custom = LoRAConfig(r=32, lora_alpha=32)
         config = create_lora_config(custom_config=custom)
         assert config.r == 32

@@ -1,9 +1,9 @@
-"""Text generation for Baligh-1.5B v0."""
+"""Text generation for Baligh-1.7B v0."""
 
 import torch
 
 from baligh.config import get_eval_config, get_model_config
-from baligh.models.loader import load_base_model, load_lora_model
+from baligh.models.loader import load_model_with_adapter
 from baligh.models.tokenizer import get_tokenizer
 from baligh.utils.logging import get_logger
 
@@ -18,13 +18,14 @@ class TextGenerator:
             self.model_config.tokenizer_name, self.model_config.max_seq_length
         )
 
-        logger.info("Loading model: %s" % model_path)
-        self.model = load_base_model(model_name=model_path, load_in_4bit=True)
-
-        if adapter_path:
-            logger.info("Loading adapter: %s" % adapter_path)
-            self.model = load_lora_model(self.model, adapter_path, is_trainable=False)
-
+        logger.info(f"Loading model: {model_path}")
+        # is_inference=True keeps the KV cache enabled and skips k-bit
+        # training preparation (which would disable it).
+        self.model = load_model_with_adapter(
+            model_path_or_name=model_path,
+            adapter_path=adapter_path,
+            is_inference=True,
+        )
         self.model.eval()
 
     def generate(
@@ -36,29 +37,34 @@ class TextGenerator:
         top_k=None,
         do_sample=None,
         repetition_penalty=None,
-        **kwargs,
     ):
-        max_new_tokens = max_new_tokens or self.config.max_new_tokens
-        temperature = temperature or self.config.temperature
-        top_p = top_p or self.config.top_p
-        top_k = top_k or self.config.top_k
-        do_sample = do_sample if do_sample is not None else self.config.do_sample
-        repetition_penalty = repetition_penalty or self.config.repetition_penalty
+        """Generate a completion for *prompt*.
+
+        All overrides use ``is None`` semantics: passing temperature=0 means
+        greedy, not "fall back to config".
+        """
+        max_new_tokens = self.config.max_new_tokens if max_new_tokens is None else max_new_tokens
+        temperature = self.config.temperature if temperature is None else temperature
+        top_p = self.config.top_p if top_p is None else top_p
+        top_k = self.config.top_k if top_k is None else top_k
+        do_sample = self.config.do_sample if do_sample is None else do_sample
+        repetition_penalty = (
+            self.config.repetition_penalty if repetition_penalty is None else repetition_penalty
+        )
+
+        generation_kwargs = dict(
+            max_new_tokens=max_new_tokens,
+            do_sample=do_sample,
+            pad_token_id=self.tokenizer.pad_token_id,
+            eos_token_id=self.tokenizer.eos_token_id,
+            repetition_penalty=repetition_penalty,
+        )
+        if do_sample:
+            generation_kwargs.update(temperature=temperature, top_p=top_p, top_k=top_k)
 
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
         with torch.no_grad():
-            outputs = self.model.generate(
-                **inputs,
-                max_new_tokens=max_new_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k,
-                do_sample=do_sample,
-                pad_token_id=self.tokenizer.pad_token_id,
-                eos_token_id=self.tokenizer.eos_token_id,
-                repetition_penalty=repetition_penalty,
-                **kwargs,
-            )
+            outputs = self.model.generate(**inputs, **generation_kwargs)
         response = self.tokenizer.decode(
             outputs[0][inputs["input_ids"].shape[1] :], skip_special_tokens=True
         )

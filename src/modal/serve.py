@@ -1,105 +1,108 @@
-"""Modal inference server for Baligh-1.5B.
+"""Modal inference server for Baligh-1.7B.
 
-Usage:
-    # Deploy as web endpoint
+Endpoints are POST + API-key gated. Create the secret once:
+    modal secret create baligh-api-key BALIGH_API_KEY=$(python -c "import secrets;print(secrets.token_urlsafe(32))")
+
+Then:
     modal deploy src/modal/serve.py
-
-    # Test locally
-    modal serve src/modal/serve.py
-
-    # Call from Python
-    modal run src/modal/infer.py --prompt "ما هي عاصمة مصر؟"
+    curl -X POST <url> -H "x-api-key: $BALIGH_API_KEY" \
+         -H "Content-Type: application/json" -d '{"prompt": "..."}'
 """
 
 import modal
-from src.modal.app import app, vol, VOL_PATH
+from src.modal.app import VOL_PATH, api_key_secret, app, vol
+
+MODEL_FALLBACK = "Kandil7/Baligh-1.7B"
+
+
+def _require_api_key(headers) -> None:
+    """Reject unauthenticated requests before any GPU work happens."""
+    import os
+
+    expected = os.environ.get("BALIGH_API_KEY")
+    provided = headers.get("x-api-key")
+    if not expected:
+        raise RuntimeError("Server misconfigured: BALIGH_API_KEY secret missing")
+    if not provided or provided != expected:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=401, detail="Invalid or missing x-api-key header")
+
+
+def _resolve_model_path() -> str:
+    import os
+    from pathlib import Path
+
+    os.environ["HF_HOME"] = f"{VOL_PATH}/.cache/huggingface"
+    model_path = f"{VOL_PATH}/training/sft/final"
+    if Path(model_path).exists():
+        return model_path
+    return MODEL_FALLBACK
+
+
+def _login_hf() -> None:
+    import os
+
+    hf_token = os.environ.get("HF_TOKEN")
+    if hf_token:
+        from huggingface_hub import login
+
+        login(token=hf_token)
 
 
 @app.function(
     gpu="a10g",
     volumes={VOL_PATH: vol},
     timeout=600,
-    secrets=[modal.Secret.from_name("huggingface-token")],
+    secrets=[modal.Secret.from_name("huggingface-token"), api_key_secret],
     allow_concurrent_inputs=10,
 )
-@modal.web_endpoint(method="GET")
-def generate(
-    prompt: str = "ما هي عاصمة مصر؟",
-    max_new_tokens: int = 512,
-    temperature: float = 0.7,
-    top_p: float = 0.9,
-):
-    """Generate text from Baligh model via web endpoint."""
-    import os
-    from pathlib import Path
+@modal.web_endpoint(method="POST")
+def generate(request: dict):
+    """Single-turn generation. Body: {"prompt", "max_new_tokens", ...}."""
+    import fastapi
 
-    os.environ["HF_HOME"] = f"{VOL_PATH}/.cache/huggingface"
+    _require_api_key(fastapi.request.headers)
+    _login_hf()
 
-    hf_token = os.environ.get("HF_TOKEN")
-    if hf_token:
-        from huggingface_hub import login
-        login(token=hf_token)
-
-    # Load model
     from baligh.inference import TextGenerator
 
-    model_path = f"{VOL_PATH}/training/sft/final"
-    if not Path(model_path).exists():
-        model_path = "Kandil7/Baligh-1.5B"  # Fallback to HF Hub
-
-    generator = TextGenerator(model_path)
+    prompt = request.get("prompt") or "مرحبا"
+    generator = TextGenerator(_resolve_model_path())
     response = generator.generate(
         prompt,
-        max_new_tokens=max_new_tokens,
-        temperature=temperature,
-        top_p=top_p,
+        max_new_tokens=request.get("max_new_tokens"),
+        temperature=request.get("temperature"),
+        top_p=request.get("top_p"),
     )
-
-    return {
-        "prompt": prompt,
-        "response": response,
-        "model": model_path,
-    }
+    return {"response": response, "model": _resolve_model_path()}
 
 
 @app.function(
     gpu="a10g",
     volumes={VOL_PATH: vol},
     timeout=600,
-    secrets=[modal.Secret.from_name("huggingface-token")],
+    secrets=[modal.Secret.from_name("huggingface-token"), api_key_secret],
     allow_concurrent_inputs=10,
 )
-@modal.web_endpoint(method="GET")
-def chat(
-    message: str = "مرحبا، كيف حالك؟",
-    max_new_tokens: int = 512,
-    temperature: float = 0.7,
-):
-    """Multi-turn chat via web endpoint."""
-    import os
-    from pathlib import Path
+@modal.web_endpoint(method="POST")
+def chat_endpoint(request: dict):
+    """Stateless chat turn. Body: {"message", "history": [...]}."""
+    import fastapi
 
-    os.environ["HF_HOME"] = f"{VOL_PATH}/.cache/huggingface"
-
-    hf_token = os.environ.get("HF_TOKEN")
-    if hf_token:
-        from huggingface_hub import login
-        login(token=hf_token)
+    _require_api_key(fastapi.request.headers)
+    _login_hf()
 
     from baligh.inference import ChatBot
 
-    model_path = f"{VOL_PATH}/training/sft/final"
-    if not Path(model_path).exists():
-        model_path = "Kandil7/Baligh-1.5B"
+    bot = ChatBot(_resolve_model_path())
+    for turn in (request.get("history") or [])[-10:]:
+        if turn.get("role") in ("user", "assistant"):
+            bot.history.append({"role": turn["role"], "content": str(turn["content"])})
 
-    chatbot = ChatBot(model_path)
-    response = chatbot.chat(message, max_new_tokens=max_new_tokens, temperature=temperature)
-
-    return {
-        "message": message,
-        "response": response,
-        "history": chatbot.history,
-    }
+    message = request.get("message") or "مرحبا"
+    response = bot.chat(message, max_new_tokens=request.get("max_new_tokens", 512))
+    return {"response": response}
 
 
 @app.function(
@@ -111,45 +114,26 @@ def chat(
 def infer_cli(
     prompt: str = "ما هي عاصمة مصر؟",
     max_new_tokens: int = 512,
-    temperature: float = 0.7,
 ):
-    """CLI inference: modal run src/modal/infer.py --prompt '...'"""
+    """CLI inference: modal run src/modal/serve.py --prompt '...'"""
     import os
-    from pathlib import Path
 
     os.environ["HF_HOME"] = f"{VOL_PATH}/.cache/huggingface"
-
-    hf_token = os.environ.get("HF_TOKEN")
-    if hf_token:
-        from huggingface_hub import login
-        login(token=hf_token)
+    _login_hf()
 
     from baligh.inference import TextGenerator
 
-    model_path = f"{VOL_PATH}/training/sft/final"
-    if not Path(model_path).exists():
-        model_path = "Kandil7/Baligh-1.5B"
+    print(f"Loading model: {_resolve_model_path()}")
+    generator = TextGenerator(_resolve_model_path())
+    response = generator.generate(prompt, max_new_tokens=max_new_tokens)
 
-    print(f"Loading model: {model_path}")
-    generator = TextGenerator(model_path)
-    response = generator.generate(
-        prompt,
-        max_new_tokens=max_new_tokens,
-        temperature=temperature,
-    )
-
-    print(f"\n{'='*60}")
+    print("\n" + "=" * 60)
     print(f"Prompt: {prompt}")
-    print(f"{'='*60}")
+    print("=" * 60)
     print(f"Response: {response}")
-    print(f"{'='*60}\n")
+    print("=" * 60 + "\n")
 
 
 @app.local_entrypoint()
-def main(
-    prompt: str = "ما هي عاصمة مصر؟",
-    max_new_tokens: int = 512,
-    temperature: float = 0.7,
-):
-    """Local entrypoint: modal run src/modal/infer.py --prompt '...'"""
-    infer_cli.remote(prompt=prompt, max_new_tokens=max_new_tokens, temperature=temperature)
+def main(prompt: str = "ما هي عاصمة مصر؟", max_new_tokens: int = 512):
+    infer_cli.remote(prompt=prompt, max_new_tokens=max_new_tokens)

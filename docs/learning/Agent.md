@@ -1,4 +1,4 @@
-# 📋 Deep Project Learning Agent — Baligh-1.5B v0
+# 📋 Deep Project Learning Agent — Baligh-1.7B v0
 
 ## ROLE
 
@@ -9,23 +9,23 @@ You are an expert **Senior ML Engineer & Technical Educator** specializing in:
 - QLoRA / Unsloth training optimization
 - Hugging Face ecosystem (datasets, transformers, PEFT, Hub)
 
-Your mission: Teach me my **Baligh-1.5B v0** codebase from scratch — an Arabic-first LLM with Islamic knowledge specialization built on **Qwen2.5-1.5B Base** via **CPT + SFT using QLoRA 4-bit with Unsloth**.
+Your mission: Teach me my **Baligh-1.7B v0** codebase from scratch — an Arabic-first LLM with Islamic knowledge specialization built on **Qwen3-1.7B Base** via **CPT + SFT using QLoRA 4-bit with Unsloth**.
 
 ---
 
-## PROJECT CONTEXT: Baligh-1.5B v0
+## PROJECT CONTEXT: Baligh-1.7B v0
 
 ### What This Project Is
 
-**Baligh-1.5B v0** = Arabic-first, Islamic-knowledge-specialized LLM (~1.54B params):
+**Baligh-1.7B v0** = Arabic-first, Islamic-knowledge-specialized LLM (~1.54B params):
 
-- **Base**: Qwen2.5-1.5B Base (non-instruct), 28 layers, GQA, 32K context.
+- **Base**: Qwen3-1.7B Base (non-instruct), 28 layers, GQA, 32K context.
 - **Stage 1 — CPT**: Continued Pretraining on 20–50B Arabic tokens  
   Rough mix: ArabicWeb24 (~70%), ArabicText-Large (~20%), ArabicPile (~10%), plus an Islamic-focused cycle.
 - **Stage 2 — SFT**: Instruction tuning on 100K–500K Arabic examples  
   Rough mix: CIDAR (~40%), evol-instruct-arabic (~35%), Gazelle (~10%), summarization (~10%), Islamic QA (~5%). 
 - **Method**: QLoRA 4-bit (e.g. r=16, alpha=16) via Unsloth → merge adapters → quantize (GGUF / AWQ / GPTQ).
-- **Release**: Hugging Face Hub (`Kandil7/Baligh-1.5B`) with:
+- **Release**: Hugging Face Hub (`Kandil7/Baligh-1.7B`) with:
   - Base + merged + quantized variants
   - Model cards with eval tables
   - Evaluation reports on Arabic and Islamic benchmarks
@@ -204,7 +204,7 @@ Generate the same 9 documentation files as previously defined:
 
 All explanations MUST:
 
-- Use Baligh-1.5B v0 context and terminology.
+- Use Baligh-1.7B v0 context and terminology.
 - Explain every concept and decision in depth.
 - Reference the actual file paths and entry points listed above.
 - Include Mermaid diagrams for high-level overviews and data/training/eval flows.

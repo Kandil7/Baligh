@@ -1,10 +1,28 @@
-"""Checkpoint management for Baligh-1.5B v0.
+"""Checkpoint management for Baligh-1.7B v0.
 
-Provides a comprehensive CheckpointManager for saving, loading, validating,
-listing, and cleaning up training checkpoints with metadata tracking.
+Design decisions:
+
+1. FULL-STATE saves. ``trainer.save_model()`` alone writes weights only;
+   resuming from such a directory silently restarts at step 0 with a fresh
+   optimizer and LR schedule. Every manager save therefore also persists
+   optimizer.pt / scheduler.pt / trainer_state.json / rng_state.pth so any
+   checkpoint is resumable by HF Trainer's ``resume_from_checkpoint``.
+
+2. SINGLE retention owner. The HF Trainer rotates its own native
+   checkpoints via ``TrainingArguments(save_total_limit=...)``. This manager
+   only counts/removes directories carrying our ``checkpoint_metadata.json``
+   marker, so the two rotators can never evict each other's resumable state.
+
+3. Atomic metadata writes (tmp file + os.replace) and corrupt-tolerant reads:
+   validation degrades to False, never crashes the caller.
+
+4. Interrupt handling restores the previous SIGINT disposition FIRST and
+   guards against re-entrant Ctrl+C during the save itself.
 """
 
 import json
+import os
+import random
 import shutil
 import signal
 import time
@@ -31,17 +49,27 @@ class CheckpointMetadata:
     metrics: dict[str, float] = field(default_factory=dict)
 
 
-class CheckpointManager:
-    """Manages training checkpoints with metadata, validation, and cleanup.
+def _read_json(path: Path) -> dict[str, Any] | None:
+    """Read JSON, returning None on any parse/read failure."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            value = json.load(f)
+        return value if isinstance(value, dict) else None
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.warning(f"Failed to read {path}: {exc}")
+        return None
 
-    Handles:
-    - Saving checkpoints with metadata (step, loss, config, timestamp)
-    - Loading checkpoints with validation
-    - Auto-discovering the latest checkpoint
-    - Listing all checkpoints with their metadata
-    - Cleaning up old checkpoints
-    - Signal handling for graceful interruption
-    """
+
+def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
+    """Write JSON atomically so a crash never leaves truncated metadata."""
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, ensure_ascii=False)
+    os.replace(tmp_path, path)
+
+
+class CheckpointManager:
+    """Manages full-state training checkpoints with metadata and cleanup."""
 
     METADATA_FILE = "checkpoint_metadata.json"
 
@@ -49,9 +77,12 @@ class CheckpointManager:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.keep_last_n = keep_last_n
-        self._original_sigint = None
+        self._original_sigint: Any = None
         self._trainer = None
         self._save_callback = None
+        self._saving = False
+
+    # ------------------------------------------------------------- saving
 
     def save_checkpoint(
         self,
@@ -63,7 +94,7 @@ class CheckpointManager:
         config: dict[str, Any] | None = None,
         metrics: dict[str, float] | None = None,
     ) -> Path:
-        """Save a checkpoint with metadata.
+        """Save a FULL-STATE, resumable checkpoint plus metadata.
 
         Args:
             trainer: HF Trainer instance.
@@ -82,6 +113,7 @@ class CheckpointManager:
 
         start_time = time.time()
         trainer.save_model(str(checkpoint_dir))
+        self._save_training_state(trainer, checkpoint_dir)
         elapsed = time.time() - start_time
 
         metadata = CheckpointMetadata(
@@ -94,94 +126,129 @@ class CheckpointManager:
             config=config or {},
             metrics=metrics or {},
         )
+        _write_json_atomic(checkpoint_dir / self.METADATA_FILE, asdict(metadata))
 
-        metadata_path = checkpoint_dir / self.METADATA_FILE
-        with open(metadata_path, "w") as f:
-            json.dump(asdict(metadata), f, indent=2)
-
-        logger.info(f"Checkpoint saved: {checkpoint_dir} (step={step}, loss={loss:.4f}, {elapsed:.1f}s)")
-
+        logger.info(
+            f"Checkpoint saved: {checkpoint_dir} (step={step}, loss={loss:.4f}, {elapsed:.1f}s)"
+        )
         self.cleanup_old_checkpoints()
         return checkpoint_dir
+
+    @staticmethod
+    def _save_training_state(trainer: Any, checkpoint_dir: Path) -> list[str]:
+        """Persist optimizer/scheduler/trainer_state/rng next to the weights.
+
+        Each component is best-effort and independently guarded: a mock or
+        partially-initialized trainer must not prevent weight saves.
+        """
+        saved = []
+        try:
+            import torch
+
+            optimizer = getattr(trainer, "optimizer", None)
+            if optimizer is not None:
+                torch.save(optimizer.state_dict(), checkpoint_dir / "optimizer.pt")
+                saved.append("optimizer")
+
+            scheduler = getattr(trainer, "lr_scheduler", None)
+            if scheduler is not None:
+                torch.save(scheduler.state_dict(), checkpoint_dir / "scheduler.pt")
+                saved.append("scheduler")
+
+            state = getattr(trainer, "state", None)
+            if state is not None and hasattr(state, "save_to_json"):
+                state.save_to_json(str(checkpoint_dir / "trainer_state.json"))
+                saved.append("trainer_state")
+
+            rng: dict[str, Any] = {
+                "python": random.getstate(),
+                "numpy": __import__("numpy").random.get_state(),
+                "cpu": torch.get_rng_state(),
+            }
+            if torch.cuda.is_available():
+                rng["cuda"] = torch.cuda.get_rng_state_all()
+            torch.save(rng, checkpoint_dir / "rng_state.pth")
+            saved.append("rng")
+        except Exception as exc:  # noqa: BLE001 - best-effort by design
+            logger.warning(f"Incomplete training state saved ({saved or 'none'}): {exc}")
+        return saved
+
+    # ------------------------------------------------------------- loading
 
     def load_checkpoint(
         self,
         trainer: Any,
         checkpoint_path: str | Path | None = None,
     ) -> Path | None:
-        """Load/resume from a checkpoint with validation.
+        """Resolve and validate a checkpoint path, then resume training.
 
         Args:
             trainer: HF Trainer instance.
-            checkpoint_path: Specific checkpoint path. If None, auto-finds latest.
+            checkpoint_path: Specific checkpoint. If None, auto-finds latest.
 
         Returns:
-            Path to the loaded checkpoint, or None if no checkpoint found.
+            Path used for resumption, or None if starting fresh.
         """
-        if checkpoint_path is None:
-            checkpoint_path = self.get_latest_checkpoint()
-            if checkpoint_path is None:
+        explicit = checkpoint_path is not None
+        resolved: Path | None
+        if explicit:
+            resolved = Path(checkpoint_path)  # type: ignore[arg-type]
+            if not self.validate_checkpoint(resolved):
+                raise ValueError(
+                    f"Requested checkpoint failed validation: {resolved}. "
+                    "Refusing to silently fall back to a different one."
+                )
+        else:
+            resolved = self.get_latest_checkpoint()
+            if resolved is None:
                 logger.info("No checkpoint found, starting from scratch")
                 return None
-        else:
-            checkpoint_path = Path(checkpoint_path)
+            if not self.validate_checkpoint(resolved):
+                logger.warning(f"Latest checkpoint invalid: {resolved}")
+                fallback = self._latest_valid_checkpoint()
+                if fallback is None:
+                    logger.warning("No valid checkpoint found, starting from scratch")
+                    return None
+                resolved = fallback
 
-        if not self.validate_checkpoint(checkpoint_path):
-            logger.warning(f"Checkpoint validation failed: {checkpoint_path}")
-            logger.info("Attempting to find a valid checkpoint...")
-            checkpoint_path = self.get_latest_checkpoint()
-            if checkpoint_path is None:
-                logger.warning("No valid checkpoint found, starting from scratch")
-                return None
-
-        logger.info(f"Resuming from checkpoint: {checkpoint_path}")
-        trainer.train(resume_from_checkpoint=str(checkpoint_path))
-        return checkpoint_path
+        logger.info(f"Resuming from checkpoint: {resolved}")
+        trainer.train(resume_from_checkpoint=str(resolved))
+        return resolved
 
     def get_latest_checkpoint(self) -> Path | None:
-        """Find the latest checkpoint by step number.
-
-        Returns:
-            Path to the latest checkpoint, or None if no checkpoints exist.
-        """
+        """Find the latest checkpoint directory by step number."""
         checkpoints = self._list_checkpoint_dirs()
         if not checkpoints:
             return None
-        latest = max(checkpoints, key=lambda x: self._get_step_number(x))
+        latest = max(checkpoints, key=self._get_step_number)
         logger.info(f"Latest checkpoint: {latest}")
         return latest
 
-    def list_checkpoints(self) -> list[dict[str, Any]]:
-        """List all checkpoints with their metadata.
+    def _latest_valid_checkpoint(self) -> Path | None:
+        """Newest checkpoint that passes validation, or None."""
+        for cp in sorted(self._list_checkpoint_dirs(), key=self._get_step_number, reverse=True):
+            if self.validate_checkpoint(cp):
+                return cp
+        return None
 
-        Returns:
-            List of dicts with checkpoint info (path, step, loss, etc.).
-        """
+    # ------------------------------------------------------------ listing
+
+    def list_checkpoints(self) -> list[dict[str, Any]]:
+        """List all checkpoints with their metadata (corrupt entries degrade)."""
         results = []
-        for cp_dir in sorted(self._list_checkpoint_dirs(), key=lambda x: self._get_step_number(x)):
-            info = {"path": str(cp_dir), "step": self._get_step_number(cp_dir)}
-            metadata_path = cp_dir / self.METADATA_FILE
-            if metadata_path.exists():
-                with open(metadata_path) as f:
-                    metadata = json.load(f)
+        for cp_dir in sorted(self._list_checkpoint_dirs(), key=self._get_step_number):
+            info: dict[str, Any] = {"path": str(cp_dir), "step": self._get_step_number(cp_dir)}
+            metadata = _read_json(cp_dir / self.METADATA_FILE)
+            if metadata:
                 info.update(metadata)
             results.append(info)
         return results
 
     def validate_checkpoint(self, checkpoint_path: str | Path) -> bool:
-        """Validate that a checkpoint is complete and loadable.
+        """Validate that a checkpoint exists and looks loadable.
 
-        Checks:
-        - Directory exists
-        - Contains model files (adapter_model.safetensors or model.safetensors)
-        - Has metadata file
-        - Metadata step matches directory name
-
-        Args:
-            checkpoint_path: Path to checkpoint directory.
-
-        Returns:
-            True if checkpoint is valid.
+        Checks model files, readable metadata, and step consistency. A
+        corrupt/truncated metadata file fails validation instead of raising.
         """
         checkpoint_path = Path(checkpoint_path)
 
@@ -201,8 +268,10 @@ class CheckpointManager:
 
         metadata_path = checkpoint_path / self.METADATA_FILE
         if metadata_path.exists():
-            with open(metadata_path) as f:
-                metadata = json.load(f)
+            metadata = _read_json(metadata_path)
+            if metadata is None:
+                logger.warning(f"Corrupt metadata in: {checkpoint_path}")
+                return False
             expected_step = self._get_step_number(checkpoint_path)
             if metadata.get("step") != expected_step:
                 logger.warning(
@@ -210,70 +279,67 @@ class CheckpointManager:
                     f"directory step ({expected_step})"
                 )
                 return False
-
         return True
 
-    def cleanup_old_checkpoints(self) -> list[Path]:
-        """Remove old checkpoints, keeping only the last N.
+    def get_checkpoint_metadata(self, checkpoint_path: str | Path) -> dict[str, Any] | None:
+        """Read metadata from a checkpoint (None if missing/corrupt)."""
+        return _read_json(Path(checkpoint_path) / self.METADATA_FILE)
 
-        Returns:
-            List of removed checkpoint paths.
+    # ------------------------------------------------------------ cleanup
+
+    def cleanup_old_checkpoints(self) -> list[Path]:
+        """Remove oldest MANAGER-saved checkpoints beyond keep_last_n.
+
+        Only directories carrying our metadata marker are considered: native
+        Trainer checkpoints (no marker) are owned by
+        ``TrainingArguments.save_total_limit``. This prevents two independent
+        rotators from deleting each other's resumable state.
         """
-        checkpoints = sorted(
-            self._list_checkpoint_dirs(), key=lambda x: self._get_step_number(x)
-        )
+        marked = [cp for cp in self._list_checkpoint_dirs() if (cp / self.METADATA_FILE).exists()]
+        marked.sort(key=self._get_step_number)
         removed = []
-        if len(checkpoints) > self.keep_last_n:
-            for cp in checkpoints[: len(checkpoints) - self.keep_last_n]:
-                shutil.rmtree(cp)
+        if len(marked) > self.keep_last_n:
+            for cp in marked[: len(marked) - self.keep_last_n]:
+                shutil.rmtree(cp, ignore_errors=False)
                 removed.append(cp)
                 logger.info(f"Removed old checkpoint: {cp}")
         return removed
 
-    def get_checkpoint_metadata(self, checkpoint_path: str | Path) -> dict[str, Any] | None:
-        """Read metadata from a checkpoint.
-
-        Args:
-            checkpoint_path: Path to checkpoint directory.
-
-        Returns:
-            Metadata dict, or None if no metadata exists.
-        """
-        metadata_path = Path(checkpoint_path) / self.METADATA_FILE
-        if not metadata_path.exists():
-            return None
-        with open(metadata_path) as f:
-            return json.load(f)
+    # ------------------------------------------------------------ signals
 
     def install_signal_handler(self, trainer: Any, save_fn=None):
-        """Install SIGINT handler to save checkpoint on Ctrl+C.
-
-        Args:
-            trainer: HF Trainer instance.
-            save_fn: Optional custom save function. If None, saves at current step.
-        """
+        """Install a SIGINT handler that saves a resumable checkpoint."""
         self._trainer = trainer
         self._save_callback = save_fn
 
         def handler(_signum, _frame):
+            if self._saving:
+                # Second Ctrl+C while first save is mid-flight: do NOT nest
+                # saves into the same partially-written directory.
+                logger.warning("Interrupt during checkpoint save — ignoring duplicate signal")
+                return
+            self._saving = True
             logger.warning("Received interrupt signal — saving checkpoint before exit...")
+            # Capture targets BEFORE restoring default disposition, because
+            # uninstall clears them; restore first so a third Ctrl+C kills hard.
+            trainer, save_fn = self._trainer, self._save_callback
+            self.uninstall_signal_handler()
             try:
-                if self._save_callback:
-                    self._save_callback()
-                elif self._trainer:
-                    state = self._trainer.state
+                if save_fn is not None:
+                    save_fn()
+                elif trainer is not None:
+                    state = trainer.state
                     self.save_checkpoint(
-                        self._trainer,
+                        trainer,
                         step=state.global_step,
                         epoch=state.epoch or 0.0,
-                        loss=state.best_metric or 0.0,
-                        learning_rate=state.learning_rate,
+                        loss=self._current_train_loss(state),
+                        learning_rate=self._current_learning_rate(state),
                     )
-            except Exception as e:
-                logger.error(f"Failed to save checkpoint on interrupt: {e}")
+            except Exception as exc:  # noqa: BLE001 - must not mask the interrupt
+                logger.error(f"Failed to save checkpoint on interrupt: {exc}")
             finally:
-                if self._original_sigint:
-                    signal.signal(signal.SIGINT, self._original_sigint)
+                self._saving = False
                 raise KeyboardInterrupt
 
         self._original_sigint = signal.getsignal(signal.SIGINT)
@@ -281,47 +347,44 @@ class CheckpointManager:
 
     def uninstall_signal_handler(self):
         """Restore the original SIGINT handler."""
-        if self._original_sigint:
+        if self._original_sigint is not None:
             signal.signal(signal.SIGINT, self._original_sigint)
             self._original_sigint = None
         self._trainer = None
         self._save_callback = None
 
+    # -------------------------------------------------------------- intern
+
+    @staticmethod
+    def _current_train_loss(state: Any) -> float:
+        """Last logged TRAINING loss (not best eval metric) for metadata."""
+        try:
+            history = getattr(state, "log_history", None) or []
+            for entry in reversed(history):
+                if isinstance(entry, dict) and "loss" in entry:
+                    return float(entry["loss"])
+        except Exception:  # noqa: BLE001 - metadata only
+            pass
+        return 0.0
+
+    @staticmethod
+    def _current_learning_rate(state: Any) -> float:
+        try:
+            lr = getattr(state, "learning_rate", None)
+            return float(lr) if lr is not None else 0.0
+        except (TypeError, ValueError):
+            return 0.0
+
     def _list_checkpoint_dirs(self) -> list[Path]:
-        """List all checkpoint directories."""
         return [
             d
             for d in self.output_dir.iterdir()
             if d.is_dir() and d.name.startswith("checkpoint-") and d.name.split("-")[-1].isdigit()
         ]
 
-    def _get_step_number(self, checkpoint_path: Path) -> int:
-        """Extract step number from checkpoint directory name."""
+    @staticmethod
+    def _get_step_number(checkpoint_path: Path) -> int:
         try:
             return int(checkpoint_path.name.split("-")[-1])
         except (ValueError, IndexError):
             return 0
-
-
-def save_checkpoint(trainer, output_dir, step):
-    """Legacy function — use CheckpointManager.save_checkpoint() instead."""
-    manager = CheckpointManager(output_dir)
-    return manager.save_checkpoint(trainer, step)
-
-
-def load_checkpoint(trainer, checkpoint_path):
-    """Legacy function — use CheckpointManager.load_checkpoint() instead."""
-    manager = CheckpointManager(Path(checkpoint_path).parent)
-    return manager.load_checkpoint(trainer, checkpoint_path)
-
-
-def get_latest_checkpoint(output_dir):
-    """Legacy function — use CheckpointManager.get_latest_checkpoint() instead."""
-    manager = CheckpointManager(output_dir)
-    return manager.get_latest_checkpoint()
-
-
-def cleanup_old_checkpoints(output_dir, keep_last_n=3):
-    """Legacy function — use CheckpointManager.cleanup_old_checkpoints() instead."""
-    manager = CheckpointManager(output_dir, keep_last_n=keep_last_n)
-    return manager.cleanup_old_checkpoints()

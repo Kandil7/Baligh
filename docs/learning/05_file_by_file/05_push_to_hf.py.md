@@ -13,10 +13,10 @@ CLI entry point for pushing models and artifacts to Hugging Face Hub.
 | Argument | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
 | --model-path | str | Yes | - | Path to model |
-| --repo-id | str | Yes | - | HF repo ID (e.g., user/baligh-1.5b-v0-instruct) |
+| --repo-id | str | Yes | - | HF repo ID (e.g., user/Baligh-1.7B-v0-instruct) |
 | --token | str | No | None | HF token (or set HF_TOKEN env var) |
 | --private | flag | No | False | Make repo private |
-| --commit-message | str | No | "Release Baligh-1.5B v0" | Commit message |
+| --commit-message | str | No | "Release Baligh-1.7B v0" | Commit message |
 
 ---
 
@@ -36,19 +36,19 @@ CLI entry point for pushing models and artifacts to Hugging Face Hub.
 ```bash
 # Push merged model
 python -m src.scripts.push_to_hf \
-    --model-path release/baligh-1.5b-v0-instruct \
-    --repo-id Kandil7/Baligh-1.5B-v0-instruct
+    --model-path release/Baligh-1.7B-v0-instruct \
+    --repo-id Kandil7/Baligh-1.7B-v0-instruct
 
 # Push with private repo
 python -m src.scripts.push_to_hf \
-    --model-path release/baligh-1.5b-v0-instruct \
-    --repo-id Kandil7/Baligh-1.5B-v0-instruct \
+    --model-path release/Baligh-1.7B-v0-instruct \
+    --repo-id Kandil7/Baligh-1.7B-v0-instruct \
     --private
 
 # Push GGUF quantized model
 python -m src.scripts.push_to_hf \
-    --model-path release/baligh-1.5b-v0-instruct-gguf \
-    --repo-id Kandil7/Baligh-1.5B-v0-instruct-GGUF
+    --model-path release/Baligh-1.7B-v0-instruct-gguf \
+    --repo-id Kandil7/Baligh-1.7B-v0-instruct-GGUF
 ```
 
 ---

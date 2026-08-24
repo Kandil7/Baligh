@@ -13,7 +13,7 @@ def set_seed(seed: int | None = None) -> int:
     """Set random seed for reproducibility across all libraries.
 
     Args:
-        seed: Random seed. If None, uses config default from config default.
+        seed: Random seed. If None, uses config default.
 
     Returns:
         The seed that was set.
@@ -32,8 +32,13 @@ def set_seed(seed: int | None = None) -> int:
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-    # Environment
+    # Environment.
+    # PYTHONHASHSEED only affects new interpreters (documented limitation);
+    # CUBLAS_WORKSPACE_CONFIG must be set before the first cuBLAS call for
+    # full GEMM determinism.
     os.environ["PYTHONHASHSEED"] = str(seed)
+    if torch.cuda.is_available():
+        os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
 
     # Torch deterministic settings
     config = get_config()

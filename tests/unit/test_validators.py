@@ -1,14 +1,12 @@
 """Tests for data validation."""
 
 import pytest
+
 from baligh.data.validators import (
-    validate_cpt_example,
-    validate_sft_example,
-    validate_dataset,
     check_dataset_schema,
     get_dataset_stats,
-    REQUIRED_CPT_COLUMNS,
-    REQUIRED_SFT_COLUMNS,
+    validate_cpt_example,
+    validate_sft_example,
 )
 
 
@@ -16,7 +14,9 @@ class TestValidateCPTExample:
     """Tests for CPT example validation."""
 
     def test_valid_example(self):
-        example = {"text": "هذا نص تجريبي طويل يحتوي على أكثر من خمسين حرفاً للتحقق من صحة التحقق من الأمثلة."}
+        example = {
+            "text": "هذا نص تجريبي طويل يحتوي على أكثر من خمسين حرفاً للتحقق من صحة التحقق من الأمثلة."
+        }
         valid, error = validate_cpt_example(example)
         assert valid is True
         assert error == ""
@@ -55,11 +55,7 @@ class TestValidateSFTExample:
     """Tests for SFT example validation."""
 
     def test_valid_example(self):
-        example = {
-            "instruction": "اكتب قصيدة قصيرة",
-            "input": "",
-            "output": "في الريف حياة هادئة"
-        }
+        example = {"instruction": "اكتب قصيدة قصيرة", "input": "", "output": "في الريف حياة هادئة"}
         valid, error = validate_sft_example(example)
         assert valid is True
         assert error == ""
@@ -68,7 +64,7 @@ class TestValidateSFTExample:
         example = {
             "instruction": "ترجم النص التالي",
             "input": "Hello world",
-            "output": "مرحبا بالعالم"
+            "output": "مرحبا بالعالم",
         }
         valid, error = validate_sft_example(example)
         assert valid is True
@@ -104,14 +100,14 @@ class TestCheckDatasetSchema:
     def test_valid_schema(self):
         class MockDataset:
             column_names = ["text", "metadata"]
-        
+
         result = check_dataset_schema(MockDataset(), ["text"])
         assert result is True
 
     def test_missing_columns(self):
         class MockDataset:
             column_names = ["text"]
-        
+
         with pytest.raises(ValueError) as excinfo:
             check_dataset_schema(MockDataset(), ["text", "metadata"])
         assert "Missing columns" in str(excinfo.value)
@@ -124,19 +120,21 @@ class TestGetDatasetStats:
         class MockDataset:
             def __iter__(self):
                 return iter([])
-        
+
         stats = get_dataset_stats(MockDataset())
         assert stats == {}
 
     def test_basic_stats(self):
         class MockDataset:
             def __iter__(self):
-                return iter([
-                    {"text": "نص قصير"},
-                    {"text": "نص أطول قليلاً من الأول"},
-                    {"text": "نص طويل جداً يحتوي على الكثير من الكلمات والحرف العربية"}
-                ])
-        
+                return iter(
+                    [
+                        {"text": "نص قصير"},
+                        {"text": "نص أطول قليلاً من الأول"},
+                        {"text": "نص طويل جداً يحتوي على الكثير من الكلمات والحرف العربية"},
+                    ]
+                )
+
         stats = get_dataset_stats(MockDataset())
         assert stats["count"] == 3
         assert stats["min_length"] > 0

@@ -1,4 +1,4 @@
-cpt:
+﻿cpt:
   # Stage 2: Full CPT run 
   dataset_mix:
     arabicweb24: 0.7
@@ -17,6 +17,6 @@ cpt:
   logging_steps: 10
   save_steps: 500
   eval_steps: 500
-  evaluation_strategy: "steps"
+  eval_strategy: "steps"
   dataloader_num_workers: 4
   packing: true

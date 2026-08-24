@@ -1,4 +1,4 @@
-# 01 — Architecture: Baligh-1.5B v0
+# 01 — Architecture: Baligh-1.7B v0
 
 ## High-Level Architecture
 
@@ -15,7 +15,7 @@ flowchart TB
     end
 
     subgraph "Training Pipeline"
-        B1[Base Model<br/>Qwen2.5-1.5B] --> B2[4-bit Quantization<br/>NF4 + Double Quant]
+        B1[Base Model<br/>Qwen3-1.7B] --> B2[4-bit Quantization<br/>NF4 + Double Quant]
         B2 --> B3[LoRA Adapters<br/>r=16, alpha=16]
         B3 --> B4{Training Stage}
         B4 -->|CPT| B5[CPT Trainer<br/>HF Trainer]
@@ -199,7 +199,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     subgraph "Stage 1: CPT"
-        C1[Load Qwen2.5-1.5B<br/>4-bit NF4] --> C2[Apply LoRA<br/>r=16, alpha=16]
+        C1[Load Qwen3-1.7B<br/>4-bit NF4] --> C2[Apply LoRA<br/>r=16, alpha=16]
         C2 --> C3[Prepare for<br/>k-bit Training]
         C3 --> C4[CPT Data<br/>50K steps]
         C4 --> C5[Train<br/>AdamW, Cosine LR]

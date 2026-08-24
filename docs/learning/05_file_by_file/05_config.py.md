@@ -8,7 +8,7 @@
 ## Imports (Lines 1-7)
 
 ```python
-"""Configuration management for Baligh-1.5B v0."""
+"""Configuration management for Baligh-1.7B v0."""
 ```
 Line 1: Module docstring. Every Python module should have one.
 
@@ -149,7 +149,7 @@ Line 42: Logging verbosity. `INFO` shows normal operations. `DEBUG` shows everyt
 Line 43: Whether logs are human-readable text or machine-parseable JSON.
 
 ```python
-    wandb_project: Optional[str] = "baligh-1.5b"
+    wandb_project: Optional[str] = "Baligh-1.7B"
 ```
 Line 44: Weights & Biases project name. `Optional[str]` means it can be a string or None. If None, W&B logging is disabled.
 
@@ -200,12 +200,12 @@ class ModelConfig:
 Lines 58-59: `frozen=True` means the object is immutable after creation (you cannot change `model_name` after creating a ModelConfig). `slots=True` saves memory by not creating a `__dict__` for each instance.
 
 ```python
-    model_name: str = "Qwen/Qwen2.5-1.5B"
+    model_name: str = "Qwen/Qwen3-1.7B"
 ```
-Line 63: The Hugging Face model ID. This is what gets passed to `AutoModelForCausalLM.from_pretrained()`. Qwen2.5-1.5B is a 1.54B parameter model by Alibaba.
+Line 63: The Hugging Face model ID. This is what gets passed to `AutoModelForCausalLM.from_pretrained()`. Qwen3-1.7B is a 1.54B parameter model by Alibaba.
 
 ```python
-    unsloth_model_name: str = "unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit"
+    unsloth_model_name: str = "unsloth/Qwen3-1.7B-Base"
 ```
 Line 64: The Unsloth-optimized version. This model is already pre-quantized to 4-bit with BitsAndBytes, making it faster to load for QLoRA training.
 
@@ -313,10 +313,15 @@ Line 96: Whether to train bias terms. "none" means only the LoRA matrices are tr
 Line 97: Task type for PEFT. "CAUSAL_LM" = causal language modeling (predict next token).
 
 ```python
-    target_modules: tuple[str, ...] = (
-        "q_proj", "k_proj", "v_proj", "o_proj",
-        "gate_proj", "up_proj", "down_proj"
-    )
+target_modules: tuple[str, ...] = (
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj",
+)
 ```
 Lines 98-101: Which layers get LoRA adapters. These are:
 - `q_proj`, `k_proj`, `v_proj`, `o_proj`: Attention projection layers (Query, Key, Value, Output)
@@ -356,11 +361,13 @@ class CPTConfig:
 Lines 108-110: CPT = Continued Pretraining. This is Stage 1: adapting the base model to Arabic domain by training on raw Arabic text.
 
 ```python
-    dataset_mix: dict[str, float] = field(default_factory=lambda: {
+dataset_mix: dict[str, float] = field(
+    default_factory=lambda: {
         "arabicweb24": 0.70,
         "arabictext_large": 0.20,
         "arabic_pile": 0.10,
-    })
+    }
+)
 ```
 Lines 113-117: Dataset mixing ratios. `default_factory=lambda: {...}` is used because dicts are mutable — you cannot use `= {...}` directly as a default value in a dataclass.
 - arabicweb24: 70% (largest, web-crawled Arabic text)
@@ -373,9 +380,12 @@ Lines 113-117: Dataset mixing ratios. `default_factory=lambda: {...}` is used be
 Line 118: Whether to run a separate training cycle on Islamic datasets after the main CPT.
 
 ```python
-    islamic_datasets: tuple[str, ...] = (
-        "hadith_datasets", "quran_qa", "quran_md", "arabic_islamic_texts"
-    )
+islamic_datasets: tuple[str, ...] = (
+    "hadith_datasets",
+    "quran_qa",
+    "quran_md",
+    "arabic_islamic_texts",
+)
 ```
 Lines 119-121: Which Islamic datasets to use in the cycle.
 
@@ -521,13 +531,15 @@ class SFTConfig:
 Lines 158-160: SFT = Supervised Fine-Tuning. Stage 2: teaching the model to follow instructions.
 
 ```python
-    dataset_mix: dict[str, float] = field(default_factory=lambda: {
+dataset_mix: dict[str, float] = field(
+    default_factory=lambda: {
         "cidar": 0.40,
         "evol_instruct_arabic": 0.35,
         "gazelle": 0.10,
         "summarization": 0.10,
         "islamic_qa": 0.05,
-    })
+    }
+)
 ```
 Lines 163-169: SFT dataset ratios. CIDAR (40%) is the largest Arabic instruction dataset. evol_instruct_arabic (35%) provides diverse instructions. Gazelle (10%) adds Arabic writing tasks. Summarization (10%) adds summarization ability. Islamic QA (5%) adds Islamic knowledge.
 
@@ -585,10 +597,13 @@ class EvalConfig:
 Lines 208-210: Configuration for running benchmarks.
 
 ```python
-    eval_datasets: tuple[str, ...] = (
-        "mmlu_arabic", "cidar_eval", "cidar_mcq",
-        "mr_tydi_arabic", "islamic_qa_custom"
-    )
+eval_datasets: tuple[str, ...] = (
+    "mmlu_arabic",
+    "cidar_eval",
+    "cidar_mcq",
+    "mr_tydi_arabic",
+    "islamic_qa_custom",
+)
 ```
 Lines 213-216: Which benchmarks to run. MMLU-Arabic for knowledge, CIDAR for instruction-following, mr-tydi for retrieval QA, Islamic QA for domain knowledge.
 
@@ -632,13 +647,15 @@ Line 225: Beam search. 1 = no beam search (just sample). Higher values explore m
 ### Human Evaluation (Lines 231-239)
 
 ```python
-    human_eval_rubric: dict[str, str] = field(default_factory=lambda: {
+human_eval_rubric: dict[str, str] = field(
+    default_factory=lambda: {
         "correctness": "1-5: Factual accuracy of the response",
         "clarity": "1-5: Clarity and readability of Arabic",
         "arabic_quality": "1-5: Formal Arabic quality (fusha)",
         "usefulness": "1-5: Helpfulness for the user's query",
         "faithfulness": "1-5: Faithfulness to source/knowledge",
-    })
+    }
+)
 ```
 Lines 233-239: Human evaluation rubric. Each response is scored 1-5 on five dimensions. This provides qualitative evaluation beyond automated metrics.
 

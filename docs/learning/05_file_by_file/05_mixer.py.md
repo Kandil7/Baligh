@@ -8,7 +8,7 @@
 ## Imports (Lines 1-7)
 
 ```python
-"""Dataset mixing for Baligh-1.5B v0."""
+"""Dataset mixing for Baligh-1.7B v0."""
 ```
 Line 1: Module docstring.
 
@@ -73,12 +73,12 @@ Lines 16-17: Lists to hold the datasets and their probabilities in the same orde
 Line 18: Sum all ratios. This is used to normalize ratios to probabilities. For example, if ratios are {0.70, 0.20, 0.10}, total = 1.0, so probabilities stay the same. If ratios were {70, 20, 10}, total = 100, and we'd divide by 100.
 
 ```python
-        for name, ratio in self.mix_config.items():
-            if name in datasets:
-                ordered_datasets.append(datasets[name])
-                ordered_probs.append(ratio / total)
-            else:
-                logger.warning('Dataset %s not found, skipping' % name)
+for name, ratio in self.mix_config.items():
+    if name in datasets:
+        ordered_datasets.append(datasets[name])
+        ordered_probs.append(ratio / total)
+    else:
+        logger.warning("Dataset %s not found, skipping" % name)
 ```
 Lines 19-24: Iterate over the mix config. For each dataset:
 1. Check if the dataset exists in the provided datasets dict
@@ -86,18 +86,25 @@ Lines 19-24: Iterate over the mix config. For each dataset:
 3. If no: log a warning and skip it (graceful degradation)
 
 ```python
-        if not ordered_datasets:
-            raise ValueError('No valid datasets to mix')
+if not ordered_datasets:
+    raise ValueError("No valid datasets to mix")
 ```
 Lines 25-26: If no datasets were found, raise an error. We can't mix nothing.
 
 ```python
-        logger.info('Mixing datasets with ratios: %s' % dict(zip([str(d) for d in ordered_datasets], ordered_probs)))
+logger.info(
+    "Mixing datasets with ratios: %s" % dict(zip([str(d) for d in ordered_datasets], ordered_probs))
+)
 ```
 Line 27: Log what we're mixing and at what probabilities.
 
 ```python
-        return interleave_datasets(ordered_datasets, probabilities=ordered_probs, seed=self.seed, stopping_strategy=self.stopping_strategy)
+return interleave_datasets(
+    ordered_datasets,
+    probabilities=ordered_probs,
+    seed=self.seed,
+    stopping_strategy=self.stopping_strategy,
+)
 ```
 Line 28: Call HF's `interleave_datasets()`:
 - `ordered_datasets`: List of Dataset objects to interleave

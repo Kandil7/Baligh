@@ -1,10 +1,10 @@
-"""Main evaluator for Baligh-1.5B v0."""
+"""Main evaluator for Baligh-1.7B v0."""
 
 import torch
 from tqdm import tqdm
 
 from baligh.config import get_eval_config, get_model_config
-from baligh.models.loader import load_base_model, load_lora_model
+from baligh.models.loader import load_model_with_adapter
 from baligh.models.tokenizer import get_tokenizer
 from baligh.utils.logging import get_logger
 from baligh.utils.memory import clear_memory, log_memory_stats
@@ -20,38 +20,42 @@ class Evaluator:
             self.model_config.tokenizer_name, self.model_config.max_seq_length
         )
 
-        logger.info("Loading model for evaluation: %s" % model_path)
-        self.model = load_base_model(model_name=model_path, load_in_4bit=True)
-
-        if adapter_path:
-            logger.info("Loading LoRA adapter: %s" % adapter_path)
-            self.model = load_lora_model(self.model, adapter_path, is_trainable=False)
-
+        logger.info(f"Loading model for evaluation: {model_path}")
+        # is_inference=True: KV cache on, no k-bit training prep.
+        self.model = load_model_with_adapter(
+            model_path_or_name=model_path,
+            adapter_path=adapter_path,
+            is_inference=True,
+        )
         self.model.eval()
         log_memory_stats(prefix="After model load")
 
     def generate(
         self, prompt, max_new_tokens=None, temperature=None, top_p=None, top_k=None, do_sample=None
     ):
-        max_new_tokens = max_new_tokens or self.config.max_new_tokens
-        temperature = temperature or self.config.temperature
-        top_p = top_p or self.config.top_p
-        top_k = top_k or self.config.top_k
-        do_sample = do_sample if do_sample is not None else self.config.do_sample
+        # `is not None` guards: `or` would turn explicit temperature=0
+        # (greedy) into the config default - making deterministic decoding
+        # impossible through this API.
+        max_new_tokens = self.config.max_new_tokens if max_new_tokens is None else max_new_tokens
+        temperature = self.config.temperature if temperature is None else temperature
+        top_p = self.config.top_p if top_p is None else top_p
+        top_k = self.config.top_k if top_k is None else top_k
+        do_sample = self.config.do_sample if do_sample is None else do_sample
+
+        generation_kwargs = dict(
+            max_new_tokens=max_new_tokens,
+            do_sample=do_sample,
+            pad_token_id=self.tokenizer.pad_token_id,
+            eos_token_id=self.tokenizer.eos_token_id,
+            repetition_penalty=self.config.repetition_penalty,
+        )
+        if do_sample:
+            # Sampling-only params; passing them with do_sample=False warns.
+            generation_kwargs.update(temperature=temperature, top_p=top_p, top_k=top_k)
 
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
         with torch.no_grad():
-            outputs = self.model.generate(
-                **inputs,
-                max_new_tokens=max_new_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k,
-                do_sample=do_sample,
-                pad_token_id=self.tokenizer.pad_token_id,
-                eos_token_id=self.tokenizer.eos_token_id,
-                repetition_penalty=self.config.repetition_penalty,
-            )
+            outputs = self.model.generate(**inputs, **generation_kwargs)
         response = self.tokenizer.decode(
             outputs[0][inputs["input_ids"].shape[1] :], skip_special_tokens=True
         )
@@ -59,10 +63,11 @@ class Evaluator:
 
     def evaluate_dataset(self, dataset, prompt_template=None, max_samples=None):
         results = []
-        max_samples = max_samples or len(dataset)
-        for i, example in enumerate(
-            tqdm(dataset.select(range(min(max_samples, len(dataset)))), desc="Evaluating")
-        ):
+        total = len(dataset)
+        limit = min(max_samples or total, total)
+
+        pbar = tqdm(dataset.select(range(limit)), desc="Evaluating", total=limit)
+        for i, example in enumerate(pbar):
             if prompt_template:
                 prompt = prompt_template.format(**example)
             else:

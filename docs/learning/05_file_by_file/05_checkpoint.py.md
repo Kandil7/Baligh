@@ -79,6 +79,7 @@ def cleanup_old_checkpoints(output_dir, keep_last_n=3):
     if len(checkpoints) > keep_last_n:
         for cp in checkpoints[:-keep_last_n]:
             import shutil
+
             shutil.rmtree(cp)
             logger.info("Removed old checkpoint: %s" % cp)
 ```

@@ -36,7 +36,7 @@ CLI entry point for merging LoRA adapters into the base model.
 python -m src.scripts.merge_lora \
     --base-model training/cpt/final \
     --adapter-path training/sft/final \
-    --output-dir release/baligh-1.5b-v0-instruct
+    --output-dir release/Baligh-1.7B-v0-instruct
 ```
 
 ---

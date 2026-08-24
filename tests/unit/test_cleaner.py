@@ -1,18 +1,20 @@
 """Tests for data cleaning pipeline."""
 
 import pytest
+
 from baligh.data.cleaner import (
-    remove_html,
-    remove_urls,
-    remove_emails,
-    normalize_whitespace,
-    normalize_arabic,
-    remove_control_chars,
+    CleaningPipeline,
+    deduplicate_dataset,
     fix_repeated_punctuation,
+    get_cleaning_pipeline,
     is_arabic,
     is_low_quality,
-    CleaningPipeline,
-    get_cleaning_pipeline,
+    normalize_arabic,
+    normalize_whitespace,
+    remove_control_chars,
+    remove_emails,
+    remove_html,
+    remove_urls,
 )
 
 
@@ -69,6 +71,21 @@ class TestNormalizeWhitespace:
         text = "Hello\n\n\nworld"
         result = normalize_whitespace(text)
         assert "\n\n\n" not in result
+
+    def test_newlines_preserved(self):
+        """Paragraph structure must survive cleaning (v0.2 fix)."""
+        text = "First paragraph line.\nSecond paragraph."
+        result = normalize_whitespace(text)
+        assert "\n" in result
+
+    def test_excessive_newlines_collapse_to_blank_line(self):
+        text = "A\n\n\n\nB"
+        result = normalize_whitespace(text)
+        assert result == "A\n\nB"
+
+    def test_tabs_collapsed(self):
+        text = "Hello\t\tworld"
+        assert normalize_whitespace(text) == "Hello world"
 
     def test_strip(self):
         text = "  Hello world  "
@@ -128,6 +145,43 @@ class TestIsLowQuality:
     def test_good_quality(self):
         text = "هذا نص جيد يحتوي على كلمات متنوعة ومختلفة في اللغة العربية"
         assert is_low_quality(text) is False
+
+
+class TestFixRepeatedPunctuation:
+    def test_collapse_keeps_single_mark(self):
+        """v0.2 fix: repeated marks collapse to one, not zero."""
+        assert fix_repeated_punctuation("جيد!!!") == "جيد!"
+        assert fix_repeated_punctuation("ماذا??") == "ماذا?"
+
+    def test_arabic_punctuation_collapsed(self):
+        assert fix_repeated_punctuation("طيب!!") == "طيب!"
+
+    def test_single_mark_untouched(self):
+        assert fix_repeated_punctuation("جيد!") == "جيد!"
+
+
+class TestRemoveControlChars:
+    def test_strips_control_characters(self):
+        text = "ok\x00\x07text\x1f"
+        result = remove_control_chars(text)
+        assert "\x00" not in result and "\x07" not in result and "\x1f" not in result
+
+    def test_preserves_tab_newline(self):
+        text = "a\tb\nc\r"
+        assert remove_control_chars(text) == text
+
+
+class TestDeduplicateDataset:
+    def test_streaming_dataset_raises_with_guidance(self):
+        from datasets import IterableDataset
+
+        def gen():
+            yield {"text": "sample"}
+
+        streaming = IterableDataset.from_generator(gen)
+        with pytest.raises(ValueError) as excinfo:
+            deduplicate_dataset(streaming)
+        assert "materialize" in str(excinfo.value).lower()
 
 
 class TestCleaningPipeline:

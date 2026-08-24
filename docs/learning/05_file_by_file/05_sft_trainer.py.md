@@ -64,16 +64,18 @@ Key SFT-specific fields:
 ### _create_trainer (Lines 106-115)
 
 ```python
-    def _create_trainer(self):
-        return TrlSFTTrainer(
-            model=self.model,
-            args=self.training_args,
-            train_dataset=self.train_dataset,
-            eval_dataset=self.eval_dataset,
-            tokenizer=self.tokenizer,
-            formatting_func=self.formatter,
-            data_collator=DataCollatorForSeq2Seq(self.tokenizer, pad_to_multiple_of=8, return_tensors='pt'),
-        )
+def _create_trainer(self):
+    return TrlSFTTrainer(
+        model=self.model,
+        args=self.training_args,
+        train_dataset=self.train_dataset,
+        eval_dataset=self.eval_dataset,
+        tokenizer=self.tokenizer,
+        formatting_func=self.formatter,
+        data_collator=DataCollatorForSeq2Seq(
+            self.tokenizer, pad_to_multiple_of=8, return_tensors="pt"
+        ),
+    )
 ```
 
 Lines 106-115: Create TRL's SFTTrainer:

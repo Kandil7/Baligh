@@ -1,7 +1,6 @@
 """Tests for evaluation reporters."""
 
 import json
-from pathlib import Path
 
 from baligh.evaluation.reporters import generate_eval_report, save_results
 

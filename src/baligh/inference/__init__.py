@@ -1,4 +1,4 @@
-"""Inference package for Baligh-1.5B v0."""
+"""Inference package for Baligh-1.7B v0."""
 
 from baligh.inference.chat import ChatBot, chat
 from baligh.inference.generator import TextGenerator, generate

@@ -15,14 +15,15 @@ on:
       repo_id:
         description: "Target HF repo ID"
         type: string
-        default: "Kandil7/Baligh-1.5B"
+        default: "Kandil7/Baligh-1.7B"
         required: true
+
+permissions:
+  contents: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    env:
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -35,34 +36,45 @@ jobs:
           pip install -e .
       - name: Push Instruct Model
         if: inputs.model_type == 'instruct' || inputs.model_type == 'both'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          REPO_ID: ${{ inputs.repo_id }}
+          VERSION: ${{ inputs.version }}
         run: |
           python -m src.scripts.push_to_hf \
             --model-path training/sft/final \
-            --repo-id ${{ inputs.repo_id }} \
-            --token ${{ secrets.HF_TOKEN }} \
-            --commit-message "Release ${{ inputs.version }}: Baligh-1.5B instruct model"
+            --repo-id "$REPO_ID" \
+            --token "$HF_TOKEN" \
+            --commit-message "Release $VERSION: Baligh-1.7B instruct model"
       - name: Push Base Model (CPT)
         if: inputs.model_type == 'base' || inputs.model_type == 'both'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          REPO_ID: ${{ inputs.repo_id }}
+          VERSION: ${{ inputs.version }}
         run: |
           python -m src.scripts.push_to_hf \
             --model-path training/cpt/final \
-            --repo-id ${{ inputs.repo_id }}-base \
-            --token ${{ secrets.HF_TOKEN }} \
-            --commit-message "Release ${{ inputs.version }}: Baligh-1.5B base model"
+            --repo-id "$REPO_ID-base" \
+            --token "$HF_TOKEN" \
+            --commit-message "Release $VERSION: Baligh-1.7B base model"
       - name: Generate Model Card
         if: inputs.model_type == 'instruct' || inputs.model_type == 'both'
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
           python -m src.scripts.generate_model_card \
-            --output release/baligh-1.5b-${{ inputs.version }}-instruct/README.md \
+            --output "release/baligh-1.7b-${VERSION}-instruct/README.md" \
             --mmlu-score TBD --cidar-rouge TBD --islamic-rouge TBD --perplexity TBD
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ inputs.version }}
-          name: Baligh-1.5B ${{ inputs.version }}
-          body: |
-            Release of Baligh-1.5B ${{ inputs.version }}
-            
-            Models available on Hugging Face:
-            - ${{ inputs.repo_id }}
-            ${{ inputs.model_type == 'both' && '- ' + inputs.repo_id + '-base' || '' }}
+        env:
+          VERSION: ${{ inputs.version }}
+          REPO_ID: ${{ inputs.repo_id }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$VERSION" \
+            --title "Baligh-1.7B $VERSION" \
+            --notes "Release of Baligh-1.7B $VERSION
+
+          Models available on Hugging Face:
+          - $REPO_ID"

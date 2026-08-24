@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide describes the data cleaning and preprocessing pipeline for Baligh-1.5B v0.
+This guide describes the data cleaning and preprocessing pipeline for Baligh-1.7B v0.
 
 ## Cleaning Pipeline Steps
 

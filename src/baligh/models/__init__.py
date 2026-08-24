@@ -1,10 +1,12 @@
-"""Models package for Baligh-1.5B v0."""
+"""Models package for Baligh-1.7B v0."""
 
 from baligh.models.loader import (
     apply_lora,
+    build_quantization_config,
     get_model_info,
     load_base_model,
     load_lora_model,
+    load_model_with_adapter,
     load_tokenizer,
     merge_lora,
     prepare_model_for_training,
@@ -30,10 +32,12 @@ __all__ = [
     "load_base_model",
     "apply_lora",
     "load_lora_model",
+    "load_model_with_adapter",
     "merge_lora",
     "load_tokenizer",
     "prepare_model_for_training",
     "get_model_info",
+    "build_quantization_config",
     # Tokenizer
     "get_tokenizer",
     "get_chat_template",

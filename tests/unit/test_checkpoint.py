@@ -1,7 +1,6 @@
 """Tests for checkpoint management."""
 
 import json
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -28,9 +27,14 @@ def _create_fake_model_files(checkpoint_dir):
 class TestCheckpointMetadata:
     def test_creation(self):
         meta = CheckpointMetadata(
-            step=100, epoch=0.5, loss=2.5, learning_rate=0.0002,
-            global_time="2026-01-01T00:00:00Z", elapsed_seconds=10.0,
-            config={"lr": 0.0002}, metrics={"acc": 0.8},
+            step=100,
+            epoch=0.5,
+            loss=2.5,
+            learning_rate=0.0002,
+            global_time="2026-01-01T00:00:00Z",
+            elapsed_seconds=10.0,
+            config={"lr": 0.0002},
+            metrics={"acc": 0.8},
         )
         assert meta.step == 100
         assert meta.loss == 2.5
@@ -38,8 +42,12 @@ class TestCheckpointMetadata:
 
     def test_frozen(self):
         meta = CheckpointMetadata(
-            step=1, epoch=0.0, loss=0.0, learning_rate=0.0,
-            global_time="", elapsed_seconds=0.0,
+            step=1,
+            epoch=0.0,
+            loss=0.0,
+            learning_rate=0.0,
+            global_time="",
+            elapsed_seconds=0.0,
         )
         with pytest.raises(AttributeError):
             meta.step = 2
@@ -55,7 +63,9 @@ class TestCheckpointManager:
         trainer = MagicMock()
         trainer.save_model = MagicMock()
 
-        cp_dir = manager.save_checkpoint(trainer, step=500, epoch=0.1, loss=3.0, learning_rate=0.0002)
+        cp_dir = manager.save_checkpoint(
+            trainer, step=500, epoch=0.1, loss=3.0, learning_rate=0.0002
+        )
 
         assert cp_dir.exists()
         assert cp_dir.name == "checkpoint-500"
@@ -115,8 +125,16 @@ class TestCheckpointManager:
             cp_dir = tmp_path / f"checkpoint-{step}"
             _create_fake_model_files(cp_dir)
             # Write metadata manually to avoid auto-cleanup
-            meta = {"step": step, "epoch": 0, "loss": 5.0, "lr": 0.0002,
-                     "global_time": "", "elapsed_seconds": 0, "config": {}, "metrics": {}}
+            meta = {
+                "step": step,
+                "epoch": 0,
+                "loss": 5.0,
+                "lr": 0.0002,
+                "global_time": "",
+                "elapsed_seconds": 0,
+                "config": {},
+                "metrics": {},
+            }
             (cp_dir / CheckpointManager.METADATA_FILE).write_text(json.dumps(meta))
 
         removed = mgr.cleanup_old_checkpoints()

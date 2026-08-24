@@ -1,4 +1,4 @@
-"""Tokenizer utilities for Baligh-1.5B v0."""
+"""Tokenizer utilities for Baligh-1.7B v0."""
 
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
@@ -13,16 +13,17 @@ def get_tokenizer(
     max_seq_length: int = 2048,
     padding_side: str = "right",
     truncation_side: str = "right",
-    add_special_tokens: bool = True,
 ) -> PreTrainedTokenizerBase:
     """Get configured tokenizer.
+
+    This is the single tokenizer factory; ``baligh.models.loader`` delegates
+    here so behavior cannot drift between modules.
 
     Args:
         tokenizer_name: Tokenizer name or path.
         max_seq_length: Maximum sequence length.
         padding_side: Padding side.
         truncation_side: Truncation side.
-        add_special_tokens: Whether to add special tokens.
 
     Returns:
         Configured tokenizer.
@@ -30,7 +31,7 @@ def get_tokenizer(
     config = get_model_config()
     tokenizer_name = tokenizer_name or config.tokenizer_name
 
-    tokenizer = AutoTokenizer.from_pretrained(
+    tokenizer: PreTrainedTokenizerBase = AutoTokenizer.from_pretrained(
         tokenizer_name,
         trust_remote_code=config.trust_remote_code,
         use_fast=True,
@@ -49,30 +50,30 @@ def get_tokenizer(
 
 
 def get_chat_template(tokenizer: PreTrainedTokenizerBase) -> str:
-    """Get chat template for Qwen2.5.
+    """Return a valid-Jinja ChatML fallback template.
 
-    Args:
-        tokenizer: Tokenizer instance.
+    Used when the loaded tokenizer ships no ``chat_template`` — which is the
+    normal case for BASE models like unsloth/Qwen3-1.7B-Base, i.e. the live
+    path during SFT data formatting for this project.
 
-    Returns:
-        Chat template string.
+    Format matches the Qwen3 family: <|im_start|>role\ncontent<|im_end|>.
+    Thinking-mode markup is intentionally omitted: v0 SFT trains direct
+    (non-thinking) responses only.
     """
-    # Qwen2.5 chat template
-    template = """{{% for message in messages %}}
-{{% if message['role'] == 'system' %}}
-<|im_start|>system
-{{ message['content'] }}<|im_end|>
-{{% elif message['role'] == 'user' %}}
-<|im_start|>user
-{{ message['content'] }}<|im_end|>
-{{% elif message['role'] == 'assistant' %}}
-<|im_start|>assistant
-{{ message['content'] }}<|im_end|>
-{{% endif }}
-{{% endfor %}}
-{{% if add_generation_prompt %}}
-<|im_start|>assistant
-{{% endif %}}"""
+    template = (
+        "{% for message in messages %}"
+        "{% if message['role'] == 'system' %}"
+        "<|im_start|>system\n{{ message['content'] }}<|im_end|>\n"
+        "{% elif message['role'] == 'user' %}"
+        "<|im_start|>user\n{{ message['content'] }}<|im_end|>\n"
+        "{% elif message['role'] == 'assistant' %}"
+        "<|im_start|>assistant\n{{ message['content'] }}<|im_end|>\n"
+        "{% endif %}"
+        "{% endfor %}"
+        "{% if add_generation_prompt %}"
+        "<|im_start|>assistant\n"
+        "{% endif %}"
+    )
     return template
 
 
@@ -84,11 +85,14 @@ def apply_chat_template(
 ) -> str | list[int]:
     """Apply chat template to messages.
 
+    Installs the fallback template on tokenizers that lack one, then defers
+    to the standard transformers implementation.
+
     Args:
         tokenizer: Tokenizer instance.
         messages: List of message dicts with 'role' and 'content'.
-        tokenize: Whether to tokenize output.
-        add_generation_prompt: Whether to add generation prompt.
+        tokenize: Whether to return token ids (True) or a string (False).
+        add_generation_prompt: Append the assistant header for generation.
 
     Returns:
         Formatted string or token IDs.
@@ -96,35 +100,33 @@ def apply_chat_template(
     if tokenizer.chat_template is None:  # type: ignore[union-attr]
         tokenizer.chat_template = get_chat_template(tokenizer)  # type: ignore[union-attr]
 
-    return tokenizer.apply_chat_template(  # type: ignore[union-attr]
+    rendered: str | list[int] = tokenizer.apply_chat_template(  # type: ignore[union-attr,assignment]
         messages,
         tokenize=tokenize,
         add_generation_prompt=add_generation_prompt,
     )
+    return rendered
 
 
 def format_instruction(
     instruction: str,
     input_text: str = "",
-    output: str = "",
+    output: str | None = None,
 ) -> list[dict]:
-    """Format instruction for SFT.
+    """Build a message list for SFT.
 
     Args:
         instruction: Instruction text.
         input_text: Optional input text.
-        output: Expected output (for training).
+        output: Expected response. None builds the prompt-only form used
+            for computing prompt-prefix lengths during loss masking.
 
     Returns:
         List of message dicts.
     """
     messages = []
 
-    if input_text:
-        user_content = f"{instruction}\n\n{input_text}"
-    else:
-        user_content = instruction
-
+    user_content = f"{instruction}\n\n{input_text}" if input_text else instruction
     messages.append({"role": "user", "content": user_content})
 
     if output:
@@ -133,14 +135,6 @@ def format_instruction(
     return messages
 
 
-def count_tokens(tokenizer: AutoTokenizer, text: str) -> int:
-    """Count tokens in text.
-
-    Args:
-        tokenizer: Tokenizer instance.
-        text: Text to count tokens for.
-
-    Returns:
-        Number of tokens.
-    """
-    return len(tokenizer.encode(text, add_special_tokens=False))  # type: ignore[union-attr]
+def count_tokens(tokenizer: PreTrainedTokenizerBase, text: str) -> int:
+    """Count tokens in text."""
+    return len(tokenizer.encode(text, add_special_tokens=False))

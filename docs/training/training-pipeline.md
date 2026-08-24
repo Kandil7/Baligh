@@ -7,10 +7,10 @@ Two-stage training: Continued Pretraining (CPT) -> Supervised Fine-Tuning (SFT)
 ## Stage 1: Continued Pretraining (CPT)
 
 ### Objective
-Adapt Qwen2.5-1.5B Base to Arabic/Islamic domain
+Adapt Qwen3-1.7B Base to Arabic/Islamic domain
 
 ### Configuration
-- Base model: unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit
+- Base model: unsloth/Qwen3-1.7B-Base
 - Method: QLoRA 4-bit (NF4, double quant)
 - LoRA: r=16, alpha=16, dropout=0
 - Target modules: all attention + MLP

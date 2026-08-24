@@ -1,13 +1,14 @@
 """Pytest configuration and fixtures."""
 
 import pytest
-from pathlib import Path
 
 
 @pytest.fixture
 def sample_cpt_text():
     """Sample CPT text for testing."""
-    return "هذا نص تجريبي عربي طويل يحتوي على الكثير من الكلمات والمعلومات المتنوعة في اللغة العربية"
+    return (
+        "هذا نص تجريبي عربي طويل يحتوي على الكثير من الكلمات والمعلومات المتنوعة في اللغة العربية"
+    )
 
 
 @pytest.fixture
@@ -16,7 +17,7 @@ def sample_sft_example():
     return {
         "instruction": "اكتب قصيدة قصيرة عن القدس",
         "input": "",
-        "output": "القدس مدينة القداسة\nفيها الأقصى والمقدسات\nتحتضن التاريخ والأصالة"
+        "output": "القدس مدينة القداسة\nفيها الأقصى والمقدسات\nتحتضن التاريخ والأصالة",
     }
 
 

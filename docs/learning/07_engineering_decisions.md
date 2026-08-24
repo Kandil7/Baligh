@@ -1,8 +1,8 @@
-# 07 — Engineering Decisions: Baligh-1.5B v0
+# 07 — Engineering Decisions: Baligh-1.7B v0
 
-## Decision 1: Qwen2.5-1.5B as Base Model
+## Decision 1: Qwen3-1.7B as Base Model
 
-**Chosen**: Qwen2.5-1.5B Base (non-instruct)
+**Chosen**: Qwen3-1.7B Base (non-instruct)
 
 **Alternatives considered**:
 - Arabic-only models (OASIS, AraGPT2): Too small, limited evaluation, no GQA

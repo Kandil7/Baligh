@@ -1,18 +1,18 @@
 <img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
 
-# عاوز اعمل Baligh-1.5B v0
+# عاوز اعمل Baligh-1.7B v0
 
-أيوه، تقدر تعمل **Baligh-1.5B v0** بشكل عملي جدًا لو تعاملت معه كنسخة أولى مبنية على نموذج 1.5B جاهز ثم تضيف له Arabic continued pretraining + SFT متخصص، بدل ما تبدأ pretraining من الصفر. نموذج Qwen2.5-1.5B مناسب كبداية لأنه Base model بحجم 1.54B، يدعم العربية ضمن أكثر من 29 لغة، وسياقه 32,768 token، وموصى أصلًا باستخدام continued pretraining وSFT فوقه بدل استعماله مباشرة للمحادثة.[^1_1]
+أيوه، تقدر تعمل **Baligh-1.7B v0** بشكل عملي جدًا لو تعاملت معه كنسخة أولى مبنية على نموذج 1.5B جاهز ثم تضيف له Arabic continued pretraining + SFT متخصص، بدل ما تبدأ pretraining من الصفر. نموذج Qwen3-1.7B مناسب كبداية لأنه Base model بحجم 1.54B، يدعم العربية ضمن أكثر من 29 لغة، وسياقه 32,768 token، وموصى أصلًا باستخدام continued pretraining وSFT فوقه بدل استعماله مباشرة للمحادثة.[^1_1]
 
 ## النسخة v0
 
-أنصح أن يكون تعريف v0 كالتالي: نموذج عربي عام-إسلامي خفيف، قوي في الفصحى، جيد في السؤال والجواب، ومرتبط بهوية Baligh أكثر من كونه chatbot عام. بما أن Qwen2.5-1.5B هو نموذج pretraining base وليس نموذج محادثة نهائي، فالأفضل أن تبني v0 على مرحلتين واضحتين: continued pretraining على نصوص عربية منتقاة، ثم instruct/SFT على بيانات حوارية وتعليمات عربية متخصصة.[^1_1]
+أنصح أن يكون تعريف v0 كالتالي: نموذج عربي عام-إسلامي خفيف، قوي في الفصحى، جيد في السؤال والجواب، ومرتبط بهوية Baligh أكثر من كونه chatbot عام. بما أن Qwen3-1.7B هو نموذج pretraining base وليس نموذج محادثة نهائي، فالأفضل أن تبني v0 على مرحلتين واضحتين: continued pretraining على نصوص عربية منتقاة، ثم instruct/SFT على بيانات حوارية وتعليمات عربية متخصصة.[^1_1]
 
 ## اختيار الأساس
 
-أفضل قاعدة عملية الآن هي Qwen2.5-1.5B Base إذا كان هدفك تشكيل شخصية وقدرات عربية من الجذر بدل فقط “تلميع” نموذج instruct جاهز. هذا النموذج معماريته transformer مع 28 طبقة وGQA وسياق 32K، ما يجعله مناسبًا لتجارب Arabic CPT ثم post-training بتكلفة أقل من نماذج أكبر.[^1_1]
+أفضل قاعدة عملية الآن هي Qwen3-1.7B Base إذا كان هدفك تشكيل شخصية وقدرات عربية من الجذر بدل فقط “تلميع” نموذج instruct جاهز. هذا النموذج معماريته transformer مع 28 طبقة وGQA وسياق 32K، ما يجعله مناسبًا لتجارب Arabic CPT ثم post-training بتكلفة أقل من نماذج أكبر.[^1_1]
 
-لو أردت إطلاقًا أسرع جدًا، يمكن عمل v0.1 فوق instruct صغير، لكن لو اسم المشروع “Baligh-1.5B v0” فأقوى معنى له أنك تملك طبقة معرفية عربية خاصة بك عبر continued pretraining ثم تضبط السلوك بـSFT. هذا يتماشى أيضًا مع توصية صفحة النموذج نفسها بعدم استخدام base مباشرة للمحادثة، بل تطبيق SFT أو RLHF أو continued pretraining فوقه.[^1_1]
+لو أردت إطلاقًا أسرع جدًا، يمكن عمل v0.1 فوق instruct صغير، لكن لو اسم المشروع “Baligh-1.7B v0” فأقوى معنى له أنك تملك طبقة معرفية عربية خاصة بك عبر continued pretraining ثم تضبط السلوك بـSFT. هذا يتماشى أيضًا مع توصية صفحة النموذج نفسها بعدم استخدام base مباشرة للمحادثة، بل تطبيق SFT أو RLHF أو continued pretraining فوقه.[^1_1]
 
 ## خطة التدريب
 
@@ -69,36 +69,36 @@
 
 مثال positioning:
 
-- **Baligh-1.5B-v0-BaseCPT**: بعد continued pretraining.
-- **Baligh-1.5B-v0-Instruct**: بعد SFT.
-- **Baligh-1.5B-v0-Chat**: نسخة محادثة لاحقة إن احتجتها.
+- **Baligh-1.7B-v0-BaseCPT**: بعد continued pretraining.
+- **Baligh-1.7B-v0-Instruct**: بعد SFT.
+- **Baligh-1.7B-v0-Chat**: نسخة محادثة لاحقة إن احتجتها.
 
 
 ## أقل setup عملي
 
 لو هتشتغل بموارد محدودة:
 
-- CPT خفيف أو متوسط على Qwen2.5-1.5B Base.
+- CPT خفيف أو متوسط على Qwen3-1.7B Base.
 - ثم LoRA/QLoRA لـ SFT.
 - ثم merge للنسخة النهائية إن كانت inference أولوية.
 
-هذا منطقي لأن Qwen2.5-1.5B صغير نسبيًا، ومعمارية النموذج وعدد المعاملات 1.54B تجعل التجربة أسرع بكثير من 7B مع الاحتفاظ بسياق 32K مفيد في مهام النصوص الطويلة.[^1_1]
+هذا منطقي لأن Qwen3-1.7B صغير نسبيًا، ومعمارية النموذج وعدد المعاملات 1.54B تجعل التجربة أسرع بكثير من 7B مع الاحتفاظ بسياق 32K مفيد في مهام النصوص الطويلة.[^1_1]
 
 ## قرار البداية
 
 لو كنت مكانك، أبدأ بهذه الصيغة مباشرة:
 
-- Base: Qwen2.5-1.5B Base[^1_1]
+- Base: Qwen3-1.7B Base[^1_1]
 - Phase 1: 20B–50B tokens عربية نظيفة إذا كانت الموارد تسمح، أو أقل لكن بجودة قوية
 - Phase 2: 100K–500K أمثلة SFT عربية
 - Phase 3: eval suite داخلي لاسم Baligh
 
 واسم النسخة:
-**Baligh-1.5B-v0-Instruct**
+**Baligh-1.7B-v0-Instruct**
 
 لأنها ستكون أول نسخة مفهومة للمستخدم النهائي، بينما نسخة CPT وحدها تصلح داخليًا أكثر.
 
-أقدر أرتب لك الخطوة التالية بشكل عملي جدًا: **roadmap كامل لـ Baligh-1.5B v0 من الداتا لحد التدريب والتقييم والـ Hugging Face release structure**.
+أقدر أرتب لك الخطوة التالية بشكل عملي جدًا: **roadmap كامل لـ Baligh-1.7B v0 من الداتا لحد التدريب والتقييم والـ Hugging Face release structure**.
 <span style="display:none">[^1_10][^1_11][^1_12][^1_13][^1_14][^1_15][^1_2][^1_3][^1_4][^1_5][^1_6][^1_7][^1_8][^1_9]</span>
 
 <div align="center">⁂</div>
@@ -123,26 +123,26 @@
 
 [^1_10]: https://aclanthology.org/2025.acl-long.194.pdf
 
-[^1_11]: https://huggingface.co/Qwen/Qwen2.5-1.5B
+[^1_11]: https://huggingface.co/Qwen/Qwen3-1.7B
 
 [^1_12]: https://www.tiktok.com/@_brg1_/video/7649193337852841223
 
-[^1_13]: https://huggingface.co/ml-maverick/Qwen2.5-1.5B-Instruct-ArabicSum
+[^1_13]: https://huggingface.co/ml-maverick/Qwen3-1.7B-Instruct-ArabicSum
 
-[^1_14]: https://ai.gitcode.com/hf_mirrors/MindIE/Qwen2.5-1.5B-Instruct
+[^1_14]: https://ai.gitcode.com/hf_mirrors/MindIE/Qwen3-1.7B-Instruct
 
 [^1_15]: https://www.youtube.com/watch?v=IWoaDntmAag
 
 
 ---
 
-# roadmap كامل لـ Baligh-1.5B v0 من الداتا لحد التدريب والتقييم والـ Hugging Face release structure.
+# roadmap كامل لـ Baligh-1.7B v0 من الداتا لحد التدريب والتقييم والـ Hugging Face release structure.
 
-أكيد. هذا **roadmap عملي كامل** لـ **Baligh-1.5B v0** من الداتا إلى التدريب والتقييم ثم هيكلة الإطلاق على Hugging Face، مصمم بحيث يكون مناسبًا لنسخة أولى قابلة للشحن فعلًا، وليس مجرد تجربة بحثية.[^2_1][^2_2]
+أكيد. هذا **roadmap عملي كامل** لـ **Baligh-1.7B v0** من الداتا إلى التدريب والتقييم ثم هيكلة الإطلاق على Hugging Face، مصمم بحيث يكون مناسبًا لنسخة أولى قابلة للشحن فعلًا، وليس مجرد تجربة بحثية.[^2_1][^2_2]
 
 ## الهدف التقني
 
-النسخة v0 يجب أن تُعرَّف كالتالي: نموذج عربي صغير الحجم، محسّن للفصحى والمهام الإسلامية، مع سلوك instruct جيد، وليس نموذجًا عامًا “يعرف كل شيء”. نموذج Qwen2.5-1.5B مناسب لهذا المسار لأنه base model صغير نسبيًا، متعدد اللغات، وموصى باستخدام continued pretraining وSFT فوقه بدل استخدامه خامًا للمحادثة.[^2_2]
+النسخة v0 يجب أن تُعرَّف كالتالي: نموذج عربي صغير الحجم، محسّن للفصحى والمهام الإسلامية، مع سلوك instruct جيد، وليس نموذجًا عامًا “يعرف كل شيء”. نموذج Qwen3-1.7B مناسب لهذا المسار لأنه base model صغير نسبيًا، متعدد اللغات، وموصى باستخدام continued pretraining وSFT فوقه بدل استخدامه خامًا للمحادثة.[^2_2]
 
 ## مسار العمل
 
@@ -200,7 +200,7 @@
 - تقليل الأخطاء الإملائية والصرفية.
 - تحسين تمثيل المصطلحات الإسلامية.
 
-استخدم LoRA/QLoRA لو الموارد محدودة، أو full-precision partial training إذا كان عندك ميزانية GPU أفضل. Qwen2.5-1.5B base مناسب لهذا الأسلوب لأنه مصمم أصلاً للاستخدام كقاعدة قبل post-training.[^2_2]
+استخدم LoRA/QLoRA لو الموارد محدودة، أو full-precision partial training إذا كان عندك ميزانية GPU أفضل. Qwen3-1.7B base مناسب لهذا الأسلوب لأنه مصمم أصلاً للاستخدام كقاعدة قبل post-training.[^2_2]
 
 ## إعداد SFT
 
@@ -299,8 +299,8 @@
 
 لـ v0، الأفضل أن تنشر:
 
-- `Baligh-1.5B-v0-base`
-- `Baligh-1.5B-v0-instruct`
+- `Baligh-1.7B-v0-base`
+- `Baligh-1.7B-v0-instruct`
 
 ولو عندك وقت، أضف:
 
@@ -315,10 +315,10 @@
 
 ### Repo names
 
-- `your-org/Baligh-1.5B-v0-base`
-- `your-org/Baligh-1.5B-v0-instruct`
-- `your-org/Baligh-1.5B-v0-eval`
-- `your-org/Baligh-1.5B-v0-data` إن كنت ستنشر نسخة من الداتا المسموح بها
+- `your-org/Baligh-1.7B-v0-base`
+- `your-org/Baligh-1.7B-v0-instruct`
+- `your-org/Baligh-1.7B-v0-eval`
+- `your-org/Baligh-1.7B-v0-data` إن كنت ستنشر نسخة من الداتا المسموح بها
 
 
 ### داخل كل model repo
@@ -359,9 +359,9 @@ Hugging Face نفسه يشجع على وجود release منظم مع وصف وا
 
 ولو تريد تفصيل أكثر:
 
-- `Baligh-1.5B-v0-base-cpt`
-- `Baligh-1.5B-v0-instruct-sft`
-- `Baligh-1.5B-v0-merged`
+- `Baligh-1.7B-v0-base-cpt`
+- `Baligh-1.7B-v0-instruct-sft`
+- `Baligh-1.7B-v0-merged`
 
 
 ## ما الذي أنصح به الآن
@@ -405,7 +405,7 @@ Hugging Face نفسه يشجع على وجود release منظم مع وصف وا
 
 # عاوز الداتا المطلوبه و ايه افضل داتا موجوده و جاهزه عشان استخدمها
 
-أيوه — لو هدفك **Baligh-1.5B v0** فأنت تحتاج نوعين من الداتا:
+أيوه — لو هدفك **Baligh-1.7B v0** فأنت تحتاج نوعين من الداتا:
 
 1) **Data للتكييف اللغوي العام**، و2) **Data للتعليمات/المحادثة**.
 والأفضل لنسخة v0 إنك تبدأ بمصادر جاهزة ونظيفة، ثم تضيف عليها corpus خاص فيك لاحقًا؛ لأن continued pretraining يحتاج نصوص خام ضخمة ونظيفة، بينما SFT يحتاج أمثلة مُهيكلة ومرخصة جيدًا.[^3_1][^3_2]
@@ -508,7 +508,7 @@ Oumi يذكرها ضمن datasets الشائعة للـ pretraining، وده ي�
 
 ## ما الذي أعتبره “أفضل” فعليًا
 
-لو سألتني عن **أفضل داتا جاهزة** لـ Baligh-1.5B v0، فترتيبي سيكون:
+لو سألتني عن **أفضل داتا جاهزة** لـ Baligh-1.7B v0، فترتيبي سيكون:
 
 1. **Arabic Wikipedia / encyclopedia-like corpora** — الأفضل للنظافة والاستقرار.[^3_3]
 2. **Clean Arabic web/text corpora** — أفضل للتوسعة والتنوع.[^3_1][^3_3]
@@ -582,7 +582,7 @@ Oumi يذكرها ضمن datasets الشائعة للـ pretraining، وده ي�
 
 ***
 
-# Baligh-1.5B v0 – قائمة Datasets جاهزة على Hugging Face
+# Baligh-1.7B v0 – قائمة Datasets جاهزة على Hugging Face
 
 ## 1️⃣ Datasets لـ Continued Pretraining (CPT)
 
@@ -706,6 +706,7 @@ Oumi يذكرها ضمن datasets الشائعة للـ pretraining، وده ي�
 
 ```python
 from datasets import load_dataset
+
 ds = load_dataset("lightonai/ArabicWeb24", data_files="ArabicWeb24/**/*.arrow", split="train")
 ```
 
@@ -730,7 +731,7 @@ cidar = load_dataset("arbml/CIDAR")
 
 - **كود Python كامل يخلط هذه datasets بنسب CPT/SFT**،
 - **JSON конфиг للمزج**،
-- **أو model card جاهز للنشر على Hugging Face لـ Baligh-1.5B-v0**.
+- **أو model card جاهز للنشر على Hugging Face لـ Baligh-1.7B-v0**.
 <span style="display:none">[^4_11][^4_12][^4_13][^4_14][^4_15][^4_16][^4_17][^4_18][^4_19][^4_20][^4_21][^4_22][^4_23][^4_24][^4_25][^4_26][^4_27][^4_28][^4_29][^4_30][^4_31][^4_32][^4_33][^4_34][^4_35]</span>
 
 <div align="center">⁂</div>
@@ -810,11 +811,11 @@ cidar = load_dataset("arbml/CIDAR")
 
 # كيفية إعداد بيئة تدريب Unsloth لنموذج 1.5B بكفاءة
 
-أكيد. هذا **دليل عملي كامل** لإعداد بيئة تدريب **Unsloth** بكفاءة لنموذج **1.5B** (مثل Qwen2.5-1.5B) باستخدام **QLoRA**، مع **Colab مجاني** أو **GPU محلي**، مع تركيز على **VRAM محدودة** و**سرعة تنفيذ**.[^5_1][^5_2][^5_3]
+أكيد. هذا **دليل عملي كامل** لإعداد بيئة تدريب **Unsloth** بكفاءة لنموذج **1.5B** (مثل Qwen3-1.7B) باستخدام **QLoRA**، مع **Colab مجاني** أو **GPU محلي**، مع تركيز على **VRAM محدودة** و**سرعة تنفيذ**.[^5_1][^5_2][^5_3]
 
 ***
 
-# Baligh-1.5B v0 — إعداد بيئة Unsloth بكفاءة
+# Baligh-1.7B v0 — إعداد بيئة Unsloth بكفاءة
 
 ## 1️⃣ المتطلبات الأساسية
 
@@ -855,7 +856,7 @@ https://colab.research.google.com/drive/1Kose-ucXO1IBaZq5BvbwWieuubP7hxvQ?usp=sh
 
 - تثبيت تلقائي لـ Unsloth + Triton + Xformers.
 - VRAM 16 GB مجانية.
-- تدريب Qwen2.5-1.5B في **< 1 ساعة**.[^5_1][^5_4]
+- تدريب Qwen3-1.7B في **< 1 ساعة**.[^5_1][^5_4]
 
 ***
 
@@ -924,14 +925,14 @@ print(f"Unsloth version: {unsloth.__version__}")
 
 ***
 
-## 5️⃣ إعداد Colab لـ Qwen2.5-1.5B
+## 5️⃣ إعداد Colab لـ Qwen3-1.7B
 
 ### 5.1 تحميل النموذج
 
 ```python
 from unsloth import FastLanguageModel
 
-model_name = "unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit"
+model_name = "unsloth/Qwen3-1.7B-Base"
 max_seq_length = 2048
 dtype = None  # auto
 
@@ -953,8 +954,7 @@ model, tokenizer = FastLanguageModel.from_pretrained(
 model = FastLanguageModel.get_peft_model(
     model,
     r=16,  # LoRA rank
-    target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
-                    "gate_proj", "up_proj", "down_proj"],
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
     lora_alpha=16,
     lora_dropout=0,
     bias="none",
@@ -972,7 +972,7 @@ from trl import SFTConfig, SFT Trainer
 
 training_args = SFTConfig(
     training_type="qlora",  # أو "lora"
-    output_dir="./Baligh-1.5B-v0",
+    output_dir="./Baligh-1.7B-v0",
     per_device_train_batch_size=2,
     gradient_accumulation_steps=4,
     max_steps=60,  # للتجربة السريعة
@@ -1043,15 +1043,15 @@ trainer.train()
 ### 5.6 حفظ النموذج
 
 ```python
-model.save_pretrained("./Baligh-1.5B-v0-lora")
-tokenizer.save_pretrained("./Baligh-1.5B-v0-lora")
+model.save_pretrained("./Baligh-1.7B-v0-lora")
+tokenizer.save_pretrained("./Baligh-1.7B-v0-lora")
 ```
 
 أو رفعه على Hugging Face:
 
 ```python
-model.push_to_hub("your-org/Baligh-1.5B-v0-lora")
-tokenizer.push_to_hub("your-org/Baligh-1.5B-v0-lora")
+model.push_to_hub("your-org/Baligh-1.7B-v0-lora")
+tokenizer.push_to_hub("your-org/Baligh-1.7B-v0-lora")
 ```
 
 
@@ -1093,7 +1093,7 @@ print(tokenizer.decode(outputs[^5_0]))
 # Cell 2: تحميل النموذج
 from unsloth import FastLanguageModel
 model, tokenizer = FastLanguageModel.from_pretrained(
-    "unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit",
+    "unsloth/Qwen3-1.7B-Base",
     max_seq_length=2048,
     dtype=None,
     load_in_4bit=True,
@@ -1137,7 +1137,7 @@ tokenizer.save_pretrained("./Baligh-v0")
 | شيء | التوصية |
 | :-- | :-- |
 | **تثبيت** | Colab →RAPID أو Conda محلية |
-| **نموذج** | `unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit` |
+| **نموذج** | `unsloth/Qwen3-1.7B-Base` |
 | **طريقة** | QLoRA 4-bit |
 | **VRAM** | 8–12 GB كافية |
 | **Speed** | < 1 ساعة على Colab T4 |
@@ -1201,7 +1201,7 @@ tokenizer.save_pretrained("./Baligh-v0")
 ملف JSON Config للتدريب مع Hyperparams.
 أو Colab Notebook جاهز يمكن نسخه مباشرة.
 
-جهزت لك 3 ملفات جاهزة للتشغيل لبدء تدريب **Baligh-1.5B v0** باستخدام **Unsloth** على **Qwen2.5-1.5B 4-bit** مع **CIDAR** كبيانات SFT ابتدائية، وهو مسار مناسب لنسخة v0 لأنه يعتمد على QLoRA خفيف وفعال فوق نموذج 1.5B.[^6_1][^6_2][^6_3]
+جهزت لك 3 ملفات جاهزة للتشغيل لبدء تدريب **Baligh-1.7B v0** باستخدام **Unsloth** على **Qwen3-1.7B 4-bit** مع **CIDAR** كبيانات SFT ابتدائية، وهو مسار مناسب لنسخة v0 لأنه يعتمد على QLoRA خفيف وفعال فوق نموذج 1.5B.[^6_1][^6_2][^6_3]
 
 ## محتوى الملفات
 
@@ -1247,7 +1247,7 @@ tokenizer.save_pretrained("./Baligh-v0")
 
 # عاوز كود كل مرحله بالتفصيل هذا أنت طلبت قائمة Datasets عربية جاهزة ومحددة جدًا على Hugging Face مع الروابط، وترتيب استخدامها في CPT و SFT، ونسب المزج — أنا الآن أجهزها لك نهائيًا كقائمة عملية قابلة للتنفيذ فورًا.
 
-Baligh-1.5B v0 – قائمة Datasets جاهزة على Hugging Face
+Baligh-1.7B v0 – قائمة Datasets جاهزة على Hugging Face
 1️⃣ Datasets لـ Continued Pretraining (CPT)
 هذه الداتا خام ونصوص عربية طويلة، هدفها رفع الفصحى، الإملاء، والكوادر اللغوية، وتثبيت المصطلحات الإسلامية.
 \#Dataset NameHugging Face LinkTokens / SizeDomainLicense
@@ -1422,7 +1422,7 @@ Evaluation sets لا تدخل التدريب أبدًا.
 إذا حابب، في الرسالة التالية أجهز لك:
 كود Python كامل يخلط هذه datasets بنسب CPT/SFT،
 JSON конфиг للمزج،
-أو model card جاهز للنشر على Hugging Face لـ Baligh-1.5B-v0.
+أو model card جاهز للنشر على Hugging Face لـ Baligh-1.7B-v0.
 
 جهزت لك **كود كل مرحلة** في pipeline منفصل: بناء خليط CPT، تجهيز JSONL، بناء خليط SFT، تدريب Unsloth، ثم تقييم مبدئي، مع ملف config مركزي ودليل تشغيل مختصر.[^7_1][^7_2][^7_3]
 
@@ -1431,7 +1431,7 @@ JSON конфиг للمزج،
 - `01_build_cpt_mixture.py`: يحمّل datasets الخاصة بـ CPT ويخلطها حسب الأوزان المقترحة مثل ArabicWeb24 وArabicText-Large وTheArabicPile_Dialects.[^7_4][^7_5][^7_1]
 - `02_prepare_cpt_jsonl.py`: يحول ناتج CPT إلى JSONL بسيط بصيغة `{"text": ...}` مناسب لخطوة التدريب الخام.[^7_6]
 - `04_build_sft_mixture.py`: يطبع ويطبع prompt موحد من datasets مثل CIDAR وevol-instruct-arabic وQuran QA ثم يعمل interleave حسب النسب.[^7_2][^7_3][^7_7]
-- `03_train_sft_unsloth.py`: يشغّل تدريب SFT على Qwen2.5-1.5B 4-bit عبر Unsloth بإعدادات QLoRA عملية.[^7_8][^7_9][^7_10]
+- `03_train_sft_unsloth.py`: يشغّل تدريب SFT على Qwen3-1.7B 4-bit عبر Unsloth بإعدادات QLoRA عملية.[^7_8][^7_9][^7_10]
 - `05_run_eval.py`: يفحص تحميل النموذج ويجرب generation أولي، مع تحميل مجموعات eval مثل MMLU_Arabic وmr-tydi.[^7_11]
 
 
@@ -1495,19 +1495,19 @@ JSON конфиг للمزج،
 
 ---
 
-# أو model card جاهز للنشر على Hugging Face لـ Baligh-1.5B-v0.
+# أو model card جاهز للنشر على Hugging Face لـ Baligh-1.7B-v0.
 
-جاهز. هذا **Model Card كامل ومهني** لـ **Baligh-1.5B-v0** مصمم للنشر مباشرة على Hugging Face، مع أقسام واضحة وتفاصيل تقنية دقيقة، بما يتوافق مع أدلة Hugging Face للموديلات الصغيرة/المتوسطة التي تعتمد على continued pretraining وSFT.[^8_1][^8_2]
+جاهز. هذا **Model Card كامل ومهني** لـ **Baligh-1.7B-v0** مصمم للنشر مباشرة على Hugging Face، مع أقسام واضحة وتفاصيل تقنية دقيقة، بما يتوافق مع أدلة Hugging Face للموديلات الصغيرة/المتوسطة التي تعتمد على continued pretraining وSFT.[^8_1][^8_2]
 
 ***
 
-# 📘 Baligh-1.5B-v0 — Model Card
+# 📘 Baligh-1.7B-v0 — Model Card
 
 ## 🎯 Overview
 
-**Baligh-1.5B-v0** هو نموذج لغة عربي صغير بحجم 1.5 مليار معامل، مُصمم ليكون **أول المساعدة العربية الإسلامية** للمهام التعليمية والمعرفية. النموذج مبني على **Qwen2.5-1.5B Instruct** (Base model) مع **Arabic continued pretraining** ثم **supervised fine-tuning (SFT)** على بيانات عربية منقحة تشمل تعليمات عامة، كتابة عربية، تلخيص، وسؤال/جواب إسلامي.
+**Baligh-1.7B-v0** هو نموذج لغة عربي صغير بحجم 1.5 مليار معامل، مُصمم ليكون **أول المساعدة العربية الإسلامية** للمهام التعليمية والمعرفية. النموذج مبني على **Qwen3-1.7B Instruct** (Base model) مع **Arabic continued pretraining** ثم **supervised fine-tuning (SFT)** على بيانات عربية منقحة تشمل تعليمات عامة، كتابة عربية، تلخيص، وسؤال/جواب إسلامي.
 
-الهدف من Baligh-1.5B-v0:
+الهدف من Baligh-1.7B-v0:
 
 - فصحى قوية، إملاء دقيق، وبنية لغوية سليمة.
 - فهم جيد للمصطلحات الإسلامية (فقه، حديث، تفسير، عقيدة).
@@ -1523,8 +1523,8 @@ JSON конфиг للمزج،
 
 | Property | Value |
 | :-- | :-- |
-| **Model name** | `Baligh-1.5B-v0` |
-| **Base model** | `unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit` (Qwen2.5-1.5B) [^8_1] |
+| **Model name** | `Baligh-1.7B-v0` |
+| **Base model** | `unsloth/Qwen3-1.7B-Base` (Qwen3-1.7B) [^8_1] |
 | **Size** | 1.54B parameters (1.5B) |
 | **Architecture** | Transformer causal LM, 28 layers, GQA, 32K context [^8_1] |
 | **Language(s)** | Arabic (primary), multilingual base |
@@ -1540,7 +1540,7 @@ JSON конфиг للمزج،
 
 ### Base Model
 
-Baligh-1.5B-v0 مبني على **Qwen2.5-1.5B Instruct**، وهو نموذج Causal LM من سلسلة Qwen2.5، متعدد اللغات، يدعم أكثر من 29 لغة بما فيها العربية. السياق الأقصى 32,768 token، مع دعم محسّن للـ structured data وJSON.[^8_1]
+Baligh-1.7B-v0 مبني على **Qwen3-1.7B Instruct**، وهو نموذج Causal LM من سلسلة Qwen2.5، متعدد اللغات، يدعم أكثر من 29 لغة بما فيها العربية. السياق الأقصى 32,768 token، مع دعم محسّن للـ structured data وJSON.[^8_1]
 
 ### Training Stages
 
@@ -1707,7 +1707,7 @@ pip install unsloth torch transformers trl datasets accelerate bitsandbytes
 from unsloth import FastLanguageModel
 
 model, tokenizer = FastLanguageModel.from_pretrained(
-    "your-org/Baligh-1.5B-v0-lora",
+    "your-org/Baligh-1.7B-v0-lora",
     max_seq_length=2048,
     dtype=None,
     load_in_4bit=True,
@@ -1737,11 +1737,11 @@ print(tokenizer.decode(outputs[^8_0], skip_special_tokens=True))
 ## 📝 Citation
 
 ```bibtex
-@misc{baligh-1.5b-v0,
-  title={Baligh-1.5B-v0: A Small Arabic Islamic Assistant},
+@misc{Baligh-1.7B-v0,
+  title={Baligh-1.7B-v0: A Small Arabic Islamic Assistant},
   author={Mohamed Kandil},
   year={2026},
-  url={https://huggingface.co/your-org/Baligh-1.5B-v0}
+  url={https://huggingface.co/your-org/Baligh-1.7B-v0}
 }
 ```
 
@@ -1750,8 +1750,8 @@ print(tokenizer.decode(outputs[^8_0], skip_special_tokens=True))
 
 ## 📄 License
 
-- Base model: Qwen2.5-1.5B (ترخيص Qwen الأصلي).
-- Baligh-1.5B-v0: Apache 2.0 (أو مطابق لترخيص Qwen + مساهماتك).
+- Base model: Qwen3-1.7B (ترخيص Qwen الأصلي).
+- Baligh-1.7B-v0: Apache 2.0 (أو مطابق لترخيص Qwen + مساهماتك).
 - التدريب: بيانات مفتوحة وم торговية كما في الجدول.
 
 ***
@@ -1777,7 +1777,7 @@ print(tokenizer.decode(outputs[^8_0], skip_special_tokens=True))
 أقدر أنسخ هذا مباشرة كـ `README.md` لـ repo في Hugging Face:
 
 ```markdown
-# Baligh-1.5B-v0
+# Baligh-1.7B-v0
 
 <!-- ضع هنا محتوى الـ Model Card -->
 ```
@@ -1822,7 +1822,7 @@ print(tokenizer.decode(outputs[^8_0], skip_special_tokens=True))
 
 # عاوز اشغل باستخدام colab cli هل تريدني أجهز لك الآن نسخة production-grade كاملة بدل النسخة الأساسية؟
 
-تقدر تشغّل كل الpipeline بتاع Baligh-1.5B-v0 من **الترمينال** باستخدام **Colab CLI** بدل ما تفتح المتصفح، وفعليًا ده أنسب سيناريو ليك بما إن Google أعلنت رسميًا عن Google Colab CLI وربطته بالـ terminal المحلي لتشغيل سكربتات Python على runtimes فيها GPU.[^9_1][^9_2][^9_3]
+تقدر تشغّل كل الpipeline بتاع Baligh-1.7B-v0 من **الترمينال** باستخدام **Colab CLI** بدل ما تفتح المتصفح، وفعليًا ده أنسب سيناريو ليك بما إن Google أعلنت رسميًا عن Google Colab CLI وربطته بالـ terminal المحلي لتشغيل سكربتات Python على runtimes فيها GPU.[^9_1][^9_2][^9_3]
 هقسم لك الرد إلى جزئين:
 
 1) إعداد وتشغيل **Colab CLI**،
@@ -1947,7 +1947,7 @@ colab exec --workdir /workspace/baligh -- \
 
 ويطبعها على شكل prompt موحد ثم يخزنها في `output/baligh_sft_mixture`.[^9_9][^9_10][^9_11]
 
-#### (د) تدريب SFT بـ Unsloth على Qwen2.5-1.5B
+#### (د) تدريب SFT بـ Unsloth على Qwen3-1.7B
 
 ```bash
 colab exec --workdir /workspace/baligh -- \
@@ -1956,11 +1956,11 @@ colab exec --workdir /workspace/baligh -- \
 
 هذا السكربت:
 
-- يحمّل `unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit`.[^9_12]
+- يحمّل `unsloth/Qwen3-1.7B-Base`.[^9_12]
 - يفعّل LoRA (r=16, alpha=16, dropout=0, target_modules للكويز/فاليو/أو/جيت/أب/داون).
 - يدرّب باستخدام SFTTrainer من TRL على `output/baligh_sft_mixture`.
 - يستخدم hyperparams اللي في `baligh_pipeline_config.json` (lr=2e-4, batch=2, acc=4, max_steps=200, warmup=10).[^9_13][^9_14]
-- يحفظ النموذج في `output/Baligh-1.5B-v0-lora`.
+- يحفظ النموذج في `output/Baligh-1.7B-v0-lora`.
 
 
 ### 2.5 سحب النموذج والنتائج لبيئتك المحلية
@@ -1968,13 +1968,13 @@ colab exec --workdir /workspace/baligh -- \
 بعد انتهاء التدريب:
 
 ```bash
-colab download /workspace/baligh/output/Baligh-1.5B-v0-lora ./Baligh-1.5B-v0-lora
+colab download /workspace/baligh/output/Baligh-1.7B-v0-lora ./Baligh-1.7B-v0-lora
 ```
 
 أو لو CLI بيشتغل بمفهوم tar:
 
 ```bash
-colab download /workspace/baligh/output/Baligh-1.5B-v0-lora
+colab download /workspace/baligh/output/Baligh-1.7B-v0-lora
 ```
 
 Colab CLI يدعم **Seamless Artifact Recovery** لسحب الموديلات والداتا والـ notebooks بدون وجع دماغ.[^9_3][^9_2][^9_1]
@@ -2012,7 +2012,7 @@ colab console
 
 - `run_baligh_colab.sh` (سكربت واحد يشغّل الـ pipeline كله عبر Colab CLI).
 - ملف `requirements.txt` مضبوط لـ Unsloth + TRL + HF stack.
-- سكربت `upload_to_hf.py` لرفع `Baligh-1.5B-v0` تلقائيًا على Hugging Face.
+- سكربت `upload_to_hf.py` لرفع `Baligh-1.7B-v0` تلقائيًا على Hugging Face.
 
 هل تفضّل نبدأ بـ **run_baligh_colab.sh** ولا **upload_to_hf.py** أولًا؟
 <span style="display:none">[^9_15][^9_16][^9_17][^9_18][^9_19][^9_20][^9_21][^9_22][^9_23]</span>
@@ -2041,7 +2041,7 @@ colab console
 
 [^9_11]: https://huggingface.co/datasets/nazimali/quran-question-answer-context
 
-[^9_12]: https://huggingface.co/unsloth/Qwen2.5-1.5B
+[^9_12]: https://huggingface.co/unsloth/Qwen3-1.7B
 
 [^9_13]: https://unsloth.ai/docs/get-started/fine-tuning-llms-guide
 
@@ -2096,7 +2096,7 @@ colab console
 اقترح هيكل بالشكل التالي:
 
 ```bash
-baligh-1.5b/
+Baligh-1.7B/
   README.md
   requirements.txt
 
@@ -2119,7 +2119,7 @@ baligh-1.5b/
     upload_to_hf.py
 
   models/
-    Baligh-1.5B-v0-lora/
+    Baligh-1.7B-v0-lora/
       # يخرج هنا بعد التدريب (محليًا بعد download من Colab)
 
   logs/
@@ -2143,7 +2143,7 @@ baligh-1.5b/
     - يثبّت المتطلبات.
     - يشغّل المراحل بالترتيب.
     - ينزّل الموديل النهائي.
-- `upload_to_hf.py`: سكربت صغير يستخدم `huggingface_hub` لرفع `models/Baligh-1.5B-v0-lora` إلى Hub.[^10_2][^10_3]
+- `upload_to_hf.py`: سكربت صغير يستخدم `huggingface_hub` لرفع `models/Baligh-1.7B-v0-lora` إلى Hub.[^10_2][^10_3]
 
 ***
 
@@ -2180,9 +2180,9 @@ print(f"Running: {cmd}")
 subprocess.check_call(cmd.split())
 PY
 
-# 3) رفع المشروع إلى /workspace/baligh-1.5b داخل Colab
+# 3) رفع المشروع إلى /workspace/Baligh-1.7B داخل Colab
 echo "[Baligh] Uploading project to Colab..."
-colab upload -s "$SESSION_NAME" "$PROJECT_ROOT" /workspace/baligh-1.5b
+colab upload -s "$SESSION_NAME" "$PROJECT_ROOT" /workspace/Baligh-1.7B
 
 # 4) تشغيل مراحل CPT + SFT + Training
 
@@ -2190,7 +2190,7 @@ colab upload -s "$SESSION_NAME" "$PROJECT_ROOT" /workspace/baligh-1.5b
 echo "[Baligh] Building CPT mixture..."
 colab exec -s "$SESSION_NAME" -- << 'PY'
 import os, subprocess
-os.chdir("/workspace/baligh-1.5b")
+os.chdir("/workspace/Baligh-1.7B")
 subprocess.check_call(["python", "scripts/01_build_cpt_mixture.py"])
 subprocess.check_call(["python", "scripts/02_prepare_cpt_jsonl.py"])
 PY
@@ -2199,7 +2199,7 @@ PY
 echo "[Baligh] Building SFT mixture..."
 colab exec -s "$SESSION_NAME" -- << 'PY'
 import os, subprocess
-os.chdir("/workspace/baligh-1.5b")
+os.chdir("/workspace/Baligh-1.7B")
 subprocess.check_call(["python", "scripts/04_build_sft_mixture.py"])
 PY
 
@@ -2207,18 +2207,18 @@ PY
 echo "[Baligh] Training SFT with Unsloth..."
 colab exec -s "$SESSION_NAME" -- << 'PY'
 import os, subprocess
-os.chdir("/workspace/baligh-1.5b")
+os.chdir("/workspace/Baligh-1.7B")
 subprocess.check_call(["python", "scripts/03_train_sft_unsloth.py"])
 PY
 
 # 5) Download trained model back to local
-echo "[Baligh] Downloading trained model to local ./models/Baligh-1.5B-v0-lora ..."
+echo "[Baligh] Downloading trained model to local ./models/Baligh-1.7B-v0-lora ..."
 mkdir -p "$PROJECT_ROOT/models"
 colab download -s "$SESSION_NAME" \
-  /workspace/baligh-1.5b/models/Baligh-1.5B-v0-lora \
-  "$PROJECT_ROOT/models/Baligh-1.5B-v0-lora"
+  /workspace/Baligh-1.7B/models/Baligh-1.7B-v0-lora \
+  "$PROJECT_ROOT/models/Baligh-1.7B-v0-lora"
 
-echo "[Baligh] Done. Model is in models/Baligh-1.5B-v0-lora"
+echo "[Baligh] Done. Model is in models/Baligh-1.7B-v0-lora"
 echo "[Baligh] You can now run: python scripts/upload_to_hf.py"
 ```
 
@@ -2229,7 +2229,7 @@ echo "[Baligh] You can now run: python scripts/upload_to_hf.py"
     - `colab exec` لتشغيل Python من stdin أو ملفات.[^10_4]
     - `colab upload` لرفع المشروع.
     - `colab download` لسحب النموذج النهائي.[^10_4]
-- كل مرحلة تُشغّل من داخل `/workspace/baligh-1.5b` في الـ runtime.
+- كل مرحلة تُشغّل من داخل `/workspace/Baligh-1.7B` في الـ runtime.
 
 قبل تشغيله لأول مرة:
 
@@ -2241,7 +2241,7 @@ colab auth login                  # تسجيل الدخول مرة واحدة
 ثم:
 
 ```bash
-cd baligh-1.5b
+cd Baligh-1.7B
 ./scripts/run_baligh_colab.sh
 ```
 
@@ -2268,9 +2268,9 @@ CONFIG_PATH = PROJECT_ROOT / "config" / "baligh_pipeline_config.json"
 with open(CONFIG_PATH, "r", encoding="utf-8") as f:
     cfg = json.load(f)
 
-repo_id = cfg["hf"]["repo_id"]          # مثال: "mohamed-kandil/Baligh-1.5B-v0"
+repo_id = cfg["hf"]["repo_id"]          # مثال: "mohamed-kandil/Baligh-1.7B-v0"
 private = cfg["hf"].get("private", False)
-model_dir = PROJECT_ROOT / cfg["train"]["output_dir"]  # models/Baligh-1.5B-v0-lora
+model_dir = PROJECT_ROOT / cfg["train"]["output_dir"]  # models/Baligh-1.7B-v0-lora
 
 if not model_dir.exists():
     raise SystemExit(f"Model directory not found: {model_dir}")
@@ -2286,7 +2286,7 @@ upload_folder(
     repo_id=repo_id,
     folder_path=str(model_dir),
     repo_type="model",
-    commit_message="Upload Baligh-1.5B-v0 model",
+    commit_message="Upload Baligh-1.7B-v0 model",
 )
 
 print(f"[Baligh] Done. Model is at: https://huggingface.co/{repo_id}")
@@ -2298,7 +2298,7 @@ print(f"[Baligh] Done. Model is at: https://huggingface.co/{repo_id}")
 pip install -U huggingface_hub
 huggingface-cli login   # مرة واحدة فقط [web:121][web:137]
 
-cd baligh-1.5b
+cd Baligh-1.7B
 python scripts/upload_to_hf.py
 ```
 
@@ -2330,10 +2330,10 @@ python scripts/upload_to_hf.py
 ```
 
 - `03_train_sft_unsloth.py`: يستخدم Unsloth:
-    - يحمّل `unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit`.[^10_11]
+    - يحمّل `unsloth/Qwen3-1.7B-Base`.[^10_11]
     - يضيف LoRA.
     - يدرّب باستخدام SFTTrainer على `data/sft/baligh_sft_mixture`.
-    - يحفظ في `models/Baligh-1.5B-v0-lora`.
+    - يحفظ في `models/Baligh-1.7B-v0-lora`.
 
 لو تحب أكتب لك نسخة نهائية من هذه السكربتات (ready-to-paste) أقدر أعمل ذلك في رسالة منفصلة، لكن بناءً على الرسائل السابقة عندك الآن skeleton قوي ويمكنك التعديل عليه بسهولة.
 
@@ -2342,16 +2342,16 @@ python scripts/upload_to_hf.py
 ## 5️⃣ كيف تشغل كل شيء عمليًا
 
 1. **إعداد المشروع:**
-    - أنشئ مجلد `baligh-1.5b`.
+    - أنشئ مجلد `Baligh-1.7B`.
     - انسخ فيه الـ structure أعلاه + السكربتات.
     - عدّل `config/baligh_pipeline_config.json` (خاصة `hf.repo_id` و `train.max_steps`).
 2. **تشغيل من الترمينال:**
     - ثبّت Colab CLI: `pip install -U google-colab-cli`.[^10_4]
     - `colab auth login`.
-    - `cd baligh-1.5b`.
+    - `cd Baligh-1.7B`.
     - `./scripts/run_baligh_colab.sh`.
 3. بعد أن ينتهي:
-    - تجد النموذج تحت: `models/Baligh-1.5B-v0-lora/`.
+    - تجد النموذج تحت: `models/Baligh-1.7B-v0-lora/`.
     - اختبره محليًا بـ `transformers` / `unsloth`.
 4. **رفع إلى HF:**
     - `huggingface-cli login`.
@@ -2391,7 +2391,7 @@ python scripts/upload_to_hf.py
 
 [^10_10]: https://huggingface.co/datasets/nazimali/quran-question-answer-context
 
-[^10_11]: https://huggingface.co/unsloth/Qwen2.5-1.5B
+[^10_11]: https://huggingface.co/unsloth/Qwen3-1.7B
 
 [^10_12]: https://github.com/googlecolab/google-colab-cli
 
@@ -2444,7 +2444,7 @@ python scripts/upload_to_hf.py
 
 # عاوزه يكون SOTA
 
-عشان Baligh-1.5B يبقى أقرب ما يكون لـ **SOTA في فئة 1–2B Arabic models**، لازم نتعامل مع الموضوع كـ pipeline بحثي/إنتاجي كامل:
+عشان Baligh-1.7B يبقى أقرب ما يكون لـ **SOTA في فئة 1–2B Arabic models**، لازم نتعامل مع الموضوع كـ pipeline بحثي/إنتاجي كامل:
 
 - **داتا SOTA** (ArabicWeb24 + curated Islamic + high‑quality SFT)،
 - **وصفة تدريب SOTA** (CPT + SFT + ممكن RL)،
@@ -2510,7 +2510,7 @@ python scripts/upload_to_hf.py
 
 ***
 
-## 3️⃣ وصفة تدريب SOTA لـ Baligh-1.5B
+## 3️⃣ وصفة تدريب SOTA لـ Baligh-1.7B
 
 ### 3.1 Continued Pretraining (CPT) جدي
 
@@ -2539,7 +2539,7 @@ python scripts/upload_to_hf.py
 
 ### 3.3 RL/Preference Optimization (اختياري لكن SOTA-ish)
 
-نماذج reasoning التي تعيد إنتاج نمط R1-Zero تستخدم GRPO فوق Qwen2.5-1.5B مع 7GB VRAM فقط على Unsloth.[^11_16][^11_15]
+نماذج reasoning التي تعيد إنتاج نمط R1-Zero تستخدم GRPO فوق Qwen3-1.7B مع 7GB VRAM فقط على Unsloth.[^11_16][^11_15]
 لـ Baligh-SOTA:
 
 - تبني small preference dataset بالعربية:
@@ -2598,12 +2598,12 @@ SOTA إذن سوف يأتي من:
     - حافظ على eval scripts علنيّة،
     - انشر نتائجك (حتى لو لم تكن رقم 1 فورًا).
 4. **Iterate**:
-    - Baligh-1.5B-v0 = أول baseline.
-    - Baligh-1.5B-v1 = بعد CPT + SFT قوي.
-    - Baligh-1.5B-v2 = بعد RL + tune للهويّة الإسلاميّة + bench على ABB.
+    - Baligh-1.7B-v0 = أول baseline.
+    - Baligh-1.7B-v1 = بعد CPT + SFT قوي.
+    - Baligh-1.7B-v2 = بعد RL + tune للهويّة الإسلاميّة + bench على ABB.
 
 بهذه الطريقة تقدر تقول بثقة:
-“Baligh-1.5B-v2 من ضمن أفضل النماذج العربية في فئة 1–2B على ABB/HELM Arabic، بأداء SOTA تقريبًا في فئته الخاصة.”
+“Baligh-1.7B-v2 من ضمن أفضل النماذج العربية في فئة 1–2B على ABB/HELM Arabic، بأداء SOTA تقريبًا في فئته الخاصة.”
 
 هل تحب أن أجهز لك في الخطوة القادمة **وصفة CPT تقريبية بالأرقام (tokens, steps, lr schedule) لنموذج 1.5B على ArabicWeb24** بحيث تكون قريبة من الوصفات المنشورة في ArabicWeb24 blog، مع resource estimates (GPU ساعات)؟
 <span style="display:none">[^11_19][^11_20][^11_21]</span>
@@ -2711,14 +2711,10 @@ def main():
         # محاولة اكتشاف عمود النص إن لم يوجد text_field المحدد
         if text_field not in ds.column_names:
             candidates = [
-                c
-                for c in ds.column_names
-                if c.lower() in ["text", "content", "article", "body"]
+                c for c in ds.column_names if c.lower() in ["text", "content", "article", "body"]
             ]
             if not candidates:
-                raise ValueError(
-                    f"[CPT] No text field found for {name}: {ds.column_names}"
-                )
+                raise ValueError(f"[CPT] No text field found for {name}: {ds.column_names}")
             print(f"[CPT] Using inferred text_field='{candidates[0]}' for {name}")
             text_field = candidates[0]
 
@@ -2792,18 +2788,10 @@ PROMPT_NO_INPUT = """### Instruction:
 def normalize_sample(example):
     # نحاول توحيد أسماء الحقول الشائعة بين الداتا
     instruction = (
-        example.get("instruction")
-        or example.get("question")
-        or example.get("prompt")
-        or ""
+        example.get("instruction") or example.get("question") or example.get("prompt") or ""
     )
     inp = example.get("input") or example.get("context") or ""
-    response = (
-        example.get("output")
-        or example.get("answer")
-        or example.get("response")
-        or ""
-    )
+    response = example.get("output") or example.get("answer") or example.get("response") or ""
 
     instruction = (instruction or "").strip()
     inp = (inp or "").strip()
@@ -2916,7 +2904,9 @@ def main():
 
     sft_path = Path(__file__).resolve().parents[1] / sft_cfg["output_path"]
     if not sft_path.exists():
-        raise SystemExit(f"[Train] SFT dataset not found at {sft_path}. Run 04_build_sft_mixture.py first.")
+        raise SystemExit(
+            f"[Train] SFT dataset not found at {sft_path}. Run 04_build_sft_mixture.py first."
+        )
 
     print("[Train] Loading SFT dataset from:", sft_path)
     dataset = load_from_disk(str(sft_path))
@@ -3010,7 +3000,7 @@ if __name__ == "__main__":
 
 ```bash
 # محليًا:
-cd baligh-1.5b
+cd Baligh-1.7B
 
 # (مرة واحدة) تثبيت Colab CLI + auth
 pip install -U google-colab-cli
@@ -3034,7 +3024,7 @@ python scripts/upload_to_hf.py
 # لو تحب الخطوة القادمة تكون وصفة CPT رقمية مفصلة (عدد tokens، عدد steps، lr schedule) لـ ArabicWeb24 على 1.5B بحيث تكون قريبة من setting SOTA، أقدر أكتبها لك بما في ذلك تقدير ساعات GPU المطلوبة.
 
 تنفع جدًا تكون الخطوة الجاية، وفعليًا هي النقطة الفاصلة بين Baligh “كويس” وBaligh “قريب من SOTA” في فئة 1.5B.
-سأعطيك وصفة **CPT رقمية مفصلة** لـ ArabicWeb24 على 1.5B، مبنية على ما نُشر عن ArabicWeb24 + وصفات pretraining الحديثة لموديلات بحجم قريب، لكن كـ **continued pretraining** فوق Qwen2.5-1.5B بدل من الصفر.[^13_1][^13_2][^13_3][^13_4]
+سأعطيك وصفة **CPT رقمية مفصلة** لـ ArabicWeb24 على 1.5B، مبنية على ما نُشر عن ArabicWeb24 + وصفات pretraining الحديثة لموديلات بحجم قريب، لكن كـ **continued pretraining** فوق Qwen3-1.7B بدل من الصفر.[^13_1][^13_2][^13_3][^13_4]
 
 سأقسّمها إلى:
 
@@ -3045,7 +3035,7 @@ python scripts/upload_to_hf.py
 
 ***
 
-## 1️⃣ هدف CPT لـ Baligh-1.5B على ArabicWeb24
+## 1️⃣ هدف CPT لـ Baligh-1.7B على ArabicWeb24
 
 ArabicWeb24 =
 
@@ -3056,7 +3046,7 @@ ArabicWeb24 =
 - **Tokens CPT مستهدفة**:
     - conservative: 5–10B tokens.
     - aggressive (أقرب SOTA): 15–20B tokens.
-- **Sequence length**: 2048 (الموديل Qwen2.5-1.5B يدعم 32K، لكن 2K–4K أكثر واقعية في compute).[^13_6]
+- **Sequence length**: 2048 (الموديل Qwen3-1.7B يدعم 32K، لكن 2K–4K أكثر واقعية في compute).[^13_6]
 - **Effective batch (tokens/step)**:
     - مثال: batch_size=512 sequences × 2048 tokens ≈ 1.05M tokens/step.
     - ممكن تحققها بـ (global batch = 512) عبر (n_gpus × per_device_batch × grad_accum).
@@ -3128,7 +3118,7 @@ ds = load_dataset("lightonai/ArabicWeb24", split="train")  # []
 
 ### مثال config رقمي لـ 10k steps:
 
-- model: Qwen2.5-1.5B base.
+- model: Qwen3-1.7B base.
 - seq_len: 2048.
 - global batch: 512 sequences (≈1.05M tokens/step).
 - steps: 10,000.
@@ -3169,7 +3159,7 @@ ds = load_dataset("lightonai/ArabicWeb24", split="train")  # []
 
 لو حاب ناخد قرار عملي واحد:
 
-- **Stage: Arabic CPT** فوق Qwen2.5-1.5B base.
+- **Stage: Arabic CPT** فوق Qwen3-1.7B base.
 - **Data**:
     - ArabicWeb24: 80%.
     - ArabicText-Large: 10%.
@@ -3188,7 +3178,7 @@ ds = load_dataset("lightonai/ArabicWeb24", split="train")  # []
 هذا يجعلك:
 
 - تستخدم شريحة محترمة من ArabicWeb24 مع respect لوصفة cleaning الأصلية.[^13_1][^13_3]
-- تحصل على Arabic-adapted Qwen2.5-1.5B base قوي قبل SFT.
+- تحصل على Arabic-adapted Qwen3-1.7B base قوي قبل SFT.
 - تكون قريب من “وصفة معقولة” في حجم compute لموديل 1.5B بناءً على ممارسات حديثة.[^13_11][^13_10][^13_4]
 
 ***
@@ -3240,9 +3230,9 @@ ds = load_dataset("lightonai/ArabicWeb24", split="train")  # []
 
 ---
 
-# عاوز implementation plan file by file in details Baligh-1.5B v0 يشتتغل علي Colab cli T4GPU Baligh-1.5B-v0 = أول baseline. مع شرح تفصيلي لكل خطوة و Clear architecture and clean code
+# عاوز implementation plan file by file in details Baligh-1.7B v0 يشتتغل علي Colab cli T4GPU Baligh-1.7B-v0 = أول baseline. مع شرح تفصيلي لكل خطوة و Clear architecture and clean code
 
-سأعتبر Baligh-1.5B-v0 **baseline قوي** (لسه مش SOTA CPT) يشتغل بالكامل على **Colab CLI + T4 GPU**، مع **architecture واضح** و**كود نظيف**.
+سأعتبر Baligh-1.7B-v0 **baseline قوي** (لسه مش SOTA CPT) يشتغل بالكامل على **Colab CLI + T4 GPU**، مع **architecture واضح** و**كود نظيف**.
 الخطة هنا implementation plan “ملف بملف” + شرح ما يحصل في كل خطوة، بحيث تقدر تبدأ فورًا من الترمينال بدون فتح متصفح.
 
 سأقسّم الرد إلى:
@@ -3255,17 +3245,17 @@ ds = load_dataset("lightonai/ArabicWeb24", split="train")  # []
 
 كل ما أقوله يفترض أنك تستخدم:
 
-- **Qwen2.5-1.5B 4-bit عبر Unsloth** (فيه Colab T4 notebook رسمي، ويدعم training أسرع 2x وتقليل VRAM).[^14_1][^14_2]
+- **Qwen3-1.7B 4-bit عبر Unsloth** (فيه Colab T4 notebook رسمي، ويدعم training أسرع 2x وتقليل VRAM).[^14_1][^14_2]
 - **Colab CLI** الرسمي الذي يسمح بتشغيل Python scripts على GPU T4 من الترمينال (`colab new`, `colab exec`, `colab upload`, `colab download`).[^14_3][^14_4][^14_5]
 
 ***
 
-## 1️⃣ Clear Architecture – هيكل مشروع Baligh-1.5B-v0
+## 1️⃣ Clear Architecture – هيكل مشروع Baligh-1.7B-v0
 
 أنشئ مجلد مشروع:
 
 ```bash
-baligh-1.5b-v0/
+Baligh-1.7B-v0/
   README.md
   requirements.txt
 
@@ -3288,7 +3278,7 @@ baligh-1.5b-v0/
     upload_to_hf.py               # رفع النموذج إلى Hugging Face Hub
 
   models/
-    Baligh-1.5B-v0-lora/          # يخرج هنا بعد التدريب
+    Baligh-1.7B-v0-lora/          # يخرج هنا بعد التدريب
 
   logs/
     train/
@@ -3330,9 +3320,9 @@ huggingface_hub
 ```json
 {
   "project": {
-    "name": "Baligh-1.5B-v0",
+    "name": "Baligh-1.7B-v0",
     "org": "your-org",
-    "base_model": "unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit"
+    "base_model": "unsloth/Qwen3-1.7B-Base"
   },
   "cpt": {
     "output_path": "data/cpt/baligh_cpt_mixture",
@@ -3353,9 +3343,9 @@ huggingface_hub
     ]
   },
   "train": {
-    "model_name": "unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit",
+    "model_name": "unsloth/Qwen3-1.7B-Base",
     "max_seq_length": 2048,
-    "output_dir": "models/Baligh-1.5B-v0-lora",
+    "output_dir": "models/Baligh-1.7B-v0-lora",
     "per_device_train_batch_size": 2,
     "gradient_accumulation_steps": 4,
     "warmup_steps": 10,
@@ -3378,7 +3368,7 @@ huggingface_hub
     ]
   },
   "hf": {
-    "repo_id": "your-org/Baligh-1.5B-v0",
+    "repo_id": "your-org/Baligh-1.7B-v0",
     "private": false
   }
 }
@@ -3429,10 +3419,10 @@ Dataset موحدة جاهزة لـ SFT، فيها عمود واحد `text`.
 
 **الهدف:**
 
-- تحميل **Qwen2.5-1.5B 4-bit** عبر Unsloth.[^14_1][^14_2]
+- تحميل **Qwen3-1.7B 4-bit** عبر Unsloth.[^14_1][^14_2]
 - تفعيل QLoRA (r=16, alpha=16).
 - تشغيل SFTTrainer على خليط SFT الذي حضرناه.
-- حفظ Baligh-1.5B-v0 كـ LoRA model في `models/Baligh-1.5B-v0-lora`.
+- حفظ Baligh-1.7B-v0 كـ LoRA model في `models/Baligh-1.7B-v0-lora`.
 
 الكود الذي أعطيتك إياه:
 
@@ -3449,14 +3439,14 @@ model, tokenizer = FastLanguageModel.from_pretrained(
 )
 ```
 
-هذا يستفيد من نموذج Unsloth Qwen2.5-1.5B 4-bit المعد للتدريب السريع على Colab T4.[^14_1]
+هذا يستفيد من نموذج Unsloth Qwen3-1.7B 4-bit المعد للتدريب السريع على Colab T4.[^14_1]
 - يفعّل LoRA:
 
 ```python
 model = FastLanguageModel.get_peft_model(
     model,
     r=16,
-    target_modules=["q_proj","k_proj","v_proj","o_proj","gate_proj","up_proj","down_proj"],
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
     lora_alpha=16,
     lora_dropout=0.0,
     bias="none",
@@ -3480,7 +3470,7 @@ model = FastLanguageModel.get_peft_model(
 
 ببساطة:
 
-- يحمّل `models/Baligh-1.5B-v0-lora` بـ `AutoModelForCausalLM` و `AutoTokenizer`.
+- يحمّل `models/Baligh-1.7B-v0-lora` بـ `AutoModelForCausalLM` و `AutoTokenizer`.
 - يولد استجابة لسؤال مثل:
 “اشرح الفرق بين الفقه والعقيدة باختصار.”
 - يطبع الـ output.
@@ -3489,11 +3479,11 @@ model = FastLanguageModel.get_peft_model(
 ### 3.4 `scripts/upload_to_hf.py` – رفع النموذج للـ Hub
 
 **الهدف:**
-رفع `models/Baligh-1.5B-v0-lora` إلى Hugging Face Hub باستخدام `huggingface_hub` (create_repo + upload_folder).[^14_13][^14_14][^14_15]
+رفع `models/Baligh-1.7B-v0-lora` إلى Hugging Face Hub باستخدام `huggingface_hub` (create_repo + upload_folder).[^14_13][^14_14][^14_15]
 
 - يقرأ `config/baligh_pipeline_config.json`.
 - يأخذ:
-    - `hf.repo_id` (مثل `"mohamed-kandil/Baligh-1.5B-v0"`).
+    - `hf.repo_id` (مثل `"mohamed-kandil/Baligh-1.7B-v0"`).
     - `train.output_dir` (مسار النموذج).
 - يستدعي:
 
@@ -3513,7 +3503,7 @@ upload_folder(repo_id=repo_id, folder_path=model_dir, repo_type="model")
 - خلط ArabicWeb24 + ArabicText-Large + ArabicPile بنسب 70/20/10.[^14_17][^14_18][^14_19]
 - تحويلها إلى JSONL للتجربة لاحقًا.
 
-التركيز الآن لتشغيل Baligh-1.5B-v0 baseline:
+التركيز الآن لتشغيل Baligh-1.7B-v0 baseline:
 **04 + 03 + 05 + run_baligh_colab + upload_to_hf.**
 
 ***
@@ -3524,12 +3514,12 @@ upload_folder(repo_id=repo_id, folder_path=model_dir, repo_type="model")
 
 1. تخصيص session جديدة مع GPU T4.
 2. تثبيت المتطلبات داخل الـ session (`pip install -r requirements.txt`).
-3. رفع مشروعك بالكامل إلى `/workspace/baligh-1.5b-v0` على runtime.[^14_4][^14_3]
+3. رفع مشروعك بالكامل إلى `/workspace/Baligh-1.7B-v0` على runtime.[^14_4][^14_3]
 4. تشغيل:
     - `04_build_sft_mixture.py`
     - `03_train_sft_unsloth.py`
     - (اختياريًا `05_run_eval.py`).
-5. تنزيل `models/Baligh-1.5B-v0-lora` إلى جهازك.
+5. تنزيل `models/Baligh-1.7B-v0-lora` إلى جهازك.
 
 المنطق الداخلي يعتمد على أوامر موثقة لـ Colab CLI:
 
@@ -3556,7 +3546,7 @@ colab auth login   # تسجّل بحساب Google مرة واحدة
 2. **تشغيل التدريب على T4:**
 
 ```bash
-cd baligh-1.5b-v0
+cd Baligh-1.7B-v0
 ./scripts/run_baligh_colab.sh
 ```
 
@@ -3567,7 +3557,7 @@ cd baligh-1.5b-v0
         - `pip install -r requirements.txt`.
         - `python scripts/04_build_sft_mixture.py`.
         - `python scripts/03_train_sft_unsloth.py`.
-    - `colab download` يرجع `models/Baligh-1.5B-v0-lora` إلى جهازك.
+    - `colab download` يرجع `models/Baligh-1.7B-v0-lora` إلى جهازك.
 3. **اختبار محلي سريع:**
     - تكتب سكربت صغير في جذر المشروع (مثلاً `test_baligh.py`) لتحميل النموذج وإعطاء prompt.
     - أو تستخدم `05_run_eval.py` داخل Colab session أو محليًا.
@@ -3582,9 +3572,9 @@ python scripts/upload_to_hf.py
 
 ***
 
-## 6️⃣ ليه ده baseline جيد لـ Baligh-1.5B-v0 على T4؟
+## 6️⃣ ليه ده baseline جيد لـ Baligh-1.7B-v0 على T4؟
 
-- يعتمد على **Qwen2.5-1.5B 4-bit بإعداد Unsloth**، وهو معد خصيصًا لـ Colab T4 finetuning (Unsloth يوفر Colab notebook رسمي لهذا الهدف).[^14_20][^14_1]
+- يعتمد على **Qwen3-1.7B 4-bit بإعداد Unsloth**، وهو معد خصيصًا لـ Colab T4 finetuning (Unsloth يوفر Colab notebook رسمي لهذا الهدف).[^14_20][^14_1]
 - يفصل بين:
     - تحضير الداتا (sft mixture).
     - التدريب (سطر واحد داخل Colab).
@@ -3602,7 +3592,7 @@ python scripts/upload_to_hf.py
 
 لو تحب الخطوة القادمة تكون:
 
-- ملف `README.md` في root المشروع يشرح لكل contributor (أو لنفسك بعد شهرين) “كيف أشغّل Baligh-1.5B-v0 من الصفر على Colab CLI خطوة بخطوة”،
+- ملف `README.md` في root المشروع يشرح لكل contributor (أو لنفسك بعد شهرين) “كيف أشغّل Baligh-1.7B-v0 من الصفر على Colab CLI خطوة بخطوة”،
 أو
 - ملف `test_baligh.py` لتحميل النموذج بعد التدريب وتجربته على عدة prompts (Islamic QA, summarization, rewriting)،
 
@@ -3611,7 +3601,7 @@ python scripts/upload_to_hf.py
 
 <div align="center">⁂</div>
 
-[^14_1]: https://huggingface.co/unsloth/Qwen2.5-1.5B
+[^14_1]: https://huggingface.co/unsloth/Qwen3-1.7B
 
 [^14_2]: https://github.com/unslothai/unsloth?locale=en-US
 
@@ -3693,7 +3683,7 @@ python scripts/upload_to_hf.py
 أفترض أن عندك:
 
 - ملف إعدادات: `config/baligh_pipeline_config.json` (سأوسّعه قليلًا).
-- هيكل مشروع كما اتفقنا (`baligh-1.5b-v0/…`).
+- هيكل مشروع كما اتفقنا (`Baligh-1.7B-v0/…`).
 
 سأبدأ بتحديث بسيط مطلوب في الـ config، ثم أعطيك السكربتات الثلاثة.
 
@@ -3706,9 +3696,9 @@ python scripts/upload_to_hf.py
 ```jsonc
 {
   "project": {
-    "name": "Baligh-1.5B-v0",
+    "name": "Baligh-1.7B-v0",
     "org": "your-org",
-    "base_model": "unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit"
+    "base_model": "unsloth/Qwen3-1.7B-Base"
   },
   "cpt": {
     "output_path": "data/cpt/baligh_cpt_mixture",
@@ -3731,9 +3721,9 @@ python scripts/upload_to_hf.py
     ]
   },
   "train": {
-    "model_name": "unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit",
+    "model_name": "unsloth/Qwen3-1.7B-Base",
     "max_seq_length": 2048,
-    "output_dir": "models/Baligh-1.5B-v0-lora",
+    "output_dir": "models/Baligh-1.7B-v0-lora",
     "per_device_train_batch_size": 2,
     "gradient_accumulation_steps": 4,
     "warmup_steps": 10,
@@ -4176,7 +4166,7 @@ if __name__ == "__main__":
     - يشغّل SFTTrainer مع:
         - eval كل `train.eval_steps`.
         - logging منظم.
-    - يحفظ النموذج تحت `models/Baligh-1.5B-v0-lora`.
+    - يحفظ النموذج تحت `models/Baligh-1.7B-v0-lora`.
 
 هذا السكربت مصمم ليشتغل كما هو على Colab T4 عبر Unsloth، لأنه يعتمد على 4-bit QLoRA وتكوين batch صغير نسبيًا (2 × grad_accum=4 → effective 8)، وهو في نطاق T4 المعتاد.[^15_1][^15_2][^15_3]
 
@@ -4204,7 +4194,7 @@ if __name__ == "__main__":
 
 <div align="center">⁂</div>
 
-[^15_1]: https://huggingface.co/unsloth/Qwen2.5-1.5B
+[^15_1]: https://huggingface.co/unsloth/Qwen3-1.7B
 
 [^15_2]: https://unsloth.ai/blog/r1-reasoning
 
@@ -4219,14 +4209,14 @@ if __name__ == "__main__":
 أضيف دعم wandb logging وmetric tracking في 03_train_sft_unsloth.py،
 
 ابدأ بـ **README.md التقني** ثم أضف W\&B لاحقًا؛ لأن README هو اللي هيثبّت الـ mental model لكل حد يلمس المشروع (بما فيهم أنت بعد شهرين).
-إليك **README.md** جاهز تقدر تحطه في جذر المشروع `baligh-1.5b-v0/` وتعدّل الاسم/الـ org فقط.
+إليك **README.md** جاهز تقدر تحطه في جذر المشروع `Baligh-1.7B-v0/` وتعدّل الاسم/الـ org فقط.
 
 ***
 
 ```markdown
-# Baligh-1.5B-v0
+# Baligh-1.7B-v0
 
-Baligh-1.5B-v0 هو نموذج لغة عربي (1.5B) مبني على Qwen2.5-1.5B عبر Unsloth، مع Supervised Fine-tuning (SFT) على بيانات تعليمات عربية (CIDAR, evol-instruct-arabic, إلخ).  
+Baligh-1.7B-v0 هو نموذج لغة عربي (1.5B) مبني على Qwen3-1.7B عبر Unsloth، مع Supervised Fine-tuning (SFT) على بيانات تعليمات عربية (CIDAR, evol-instruct-arabic, إلخ).  
 هذا الريبو يتيح لك تشغيل **تدريب كامل** على **Google Colab T4** باستخدام **Colab CLI** من الترمينال، ثم رفع النموذج إلى Hugging Face.
 
 ## ✨ الميزات
@@ -4234,7 +4224,7 @@ Baligh-1.5B-v0 هو نموذج لغة عربي (1.5B) مبني على Qwen2.5-1.
 - Clear architecture: فصل بين `config`, `data`, `scripts`, `models`, `logs`.
 - Config-driven بالكامل عبر `config/baligh_pipeline_config.json`.
 - Data mixing لـ SFT من Hugging Face datasets (CIDAR, evol-instruct-arabic, ArSyra, Quran QA).
-- تدريب SFT باستخدام Unsloth + QLoRA على Qwen2.5-1.5B 4-bit (مناسب لـ T4 GPU).
+- تدريب SFT باستخدام Unsloth + QLoRA على Qwen3-1.7B 4-bit (مناسب لـ T4 GPU).
 - دعم train/validation split و eval أثناء التدريب.
 - سكربت رفع جاهز إلى Hugging Face Hub.
 
@@ -4243,7 +4233,7 @@ Baligh-1.5B-v0 هو نموذج لغة عربي (1.5B) مبني على Qwen2.5-1.
 ## 1️⃣ بنية المشروع
 
 ```bash
-baligh-1.5b-v0/
+Baligh-1.7B-v0/
   README.md
   requirements.txt
 
@@ -4266,7 +4256,7 @@ baligh-1.5b-v0/
     upload_to_hf.py             # رفع النموذج إلى Hugging Face
 
   models/
-    Baligh-1.5B-v0-lora/        # يخرج هنا بعد التدريب
+    Baligh-1.7B-v0-lora/        # يخرج هنا بعد التدريب
 
   logs/
     train/
@@ -4323,7 +4313,7 @@ bitsandbytes
 huggingface_hub
 ```
 
-Unsloth يوفر دعم رسمي لتدريب Qwen2.5-1.5B 4-bit على Colab T4 مع QLoRA [unsloth docs / HF model card].
+Unsloth يوفر دعم رسمي لتدريب Qwen3-1.7B 4-bit على Colab T4 مع QLoRA [unsloth docs / HF model card].
 
 ---
 
@@ -4340,9 +4330,9 @@ config/baligh_pipeline_config.json
 ```jsonc
 {
   "project": {
-    "name": "Baligh-1.5B-v0",
+    "name": "Baligh-1.7B-v0",
     "org": "your-org",
-    "base_model": "unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit"
+    "base_model": "unsloth/Qwen3-1.7B-Base"
   },
   "sft": {
     "output_path": "data/sft/baligh_sft_mixture",
@@ -4356,9 +4346,9 @@ config/baligh_pipeline_config.json
     ]
   },
   "train": {
-    "model_name": "unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit",
+    "model_name": "unsloth/Qwen3-1.7B-Base",
     "max_seq_length": 2048,
-    "output_dir": "models/Baligh-1.5B-v0-lora",
+    "output_dir": "models/Baligh-1.7B-v0-lora",
     "per_device_train_batch_size": 2,
     "gradient_accumulation_steps": 4,
     "warmup_steps": 10,
@@ -4376,7 +4366,7 @@ config/baligh_pipeline_config.json
     "bf16": false
   },
   "hf": {
-    "repo_id": "your-org/Baligh-1.5B-v0",
+    "repo_id": "your-org/Baligh-1.7B-v0",
     "private": false
   }
 }
@@ -4394,8 +4384,8 @@ config/baligh_pipeline_config.json
 
 ```bash
 # 1) استنساخ المشروع
-git clone <this_repo_url> baligh-1.5b-v0
-cd baligh-1.5b-v0
+git clone <this_repo_url> Baligh-1.7B-v0
+cd Baligh-1.7B-v0
 
 # 2) إعداد Colab CLI + auth
 pip install -U google-colab-cli
@@ -4414,10 +4404,10 @@ colab auth login
 colab new -s baligh-train --gpu T4
 ```
 
-2. يرفع مجلد المشروع الحالي إلى `/workspace/baligh-1.5b-v0` في الـ VM:
+2. يرفع مجلد المشروع الحالي إلى `/workspace/Baligh-1.7B-v0` في الـ VM:
 
 ```bash
-colab upload -s baligh-train . /workspace/baligh-1.5b-v0
+colab upload -s baligh-train . /workspace/Baligh-1.7B-v0
 ```
 
 3. داخل الـ VM:
@@ -4429,12 +4419,12 @@ colab upload -s baligh-train . /workspace/baligh-1.5b-v0
 
 ```bash
 colab download -s baligh-train \
-  /workspace/baligh-1.5b-v0/models/Baligh-1.5B-v0-lora \
-  ./models/Baligh-1.5B-v0-lora
+  /workspace/Baligh-1.7B-v0/models/Baligh-1.7B-v0-lora \
+  ./models/Baligh-1.7B-v0-lora
 ```
 
 
-بعد انتهاء السكربت، سيكون لديك مجلد `models/Baligh-1.5B-v0-lora` جاهز للاستخدام المحلي والرفع إلى HF.
+بعد انتهاء السكربت، سيكون لديك مجلد `models/Baligh-1.7B-v0-lora` جاهز للاستخدام المحلي والرفع إلى HF.
 
 ---
 
@@ -4490,7 +4480,7 @@ model, tokenizer = FastLanguageModel.from_pretrained(
 )
 ```
 
-- يفعل QLoRA فوق Qwen2.5-1.5B بذاكرة منخفضة:
+- يفعل QLoRA فوق Qwen3-1.7B بذاكرة منخفضة:
     - `r=16`, `alpha=16`, no dropout, gradient checkpointing = `"unsloth"`.
 - يضبط `SFTConfig` من config (batch, lr, steps, eval_steps…).
 - يطلق `SFTTrainer`:
@@ -4500,13 +4490,13 @@ model, tokenizer = FastLanguageModel.from_pretrained(
 - يحفظ النموذج النهائي تحت:
 
 ```bash
-models/Baligh-1.5B-v0-lora/
+models/Baligh-1.7B-v0-lora/
 ```
 
 
 ### 5.3 `05_run_eval.py` (اختياري)
 
-- يحمّل نموذج `models/Baligh-1.5B-v0-lora`.
+- يحمّل نموذج `models/Baligh-1.7B-v0-lora`.
 - يجرّب prompt عربي واحد/اثنين (مثلاً: سؤال فقهي بسيط).
 - يحوّلها لـ generation ويطبع المخرجات.
 - مفيد للتأكد أن الأمور تعمل قبل الرفع.
@@ -4525,7 +4515,7 @@ python scripts/upload_to_hf.py
 سكربت `upload_to_hf.py`:
 
 - يقرأ:
-    - `hf.repo_id` من config (مثلاً: `"mohamed-kandil/Baligh-1.5B-v0"`).
+    - `hf.repo_id` من config (مثلاً: `"mohamed-kandil/Baligh-1.7B-v0"`).
     - `train.output_dir` (مسار النموذج).
 - يستخدم:
 
@@ -4553,7 +4543,7 @@ https://huggingface.co/<repo_id>
 from unsloth import FastLanguageModel
 
 model, tokenizer = FastLanguageModel.from_pretrained(
-    "your-org/Baligh-1.5B-v0",   # أو المسار المحلي ./models/Baligh-1.5B-v0-lora
+    "your-org/Baligh-1.7B-v0",  # أو المسار المحلي ./models/Baligh-1.7B-v0-lora
     max_seq_length=2048,
     dtype=None,
     load_in_4bit=True,
@@ -4576,9 +4566,9 @@ print(tokenizer.decode(outputs, skip_special_tokens=True))
 
 ## 8️⃣ تطويرات لاحقة
 
-Baligh-1.5B-v0 هو **baseline**:
+Baligh-1.7B-v0 هو **baseline**:
 
-- SFT فقط على Qwen2.5-1.5B 4-bit.
+- SFT فقط على Qwen3-1.7B 4-bit.
 - لاحقًا يمكن إضافة:
     - CPT جدي على ArabicWeb24.
     - RL (DPO/GRPO) لمزيد من alignment.
@@ -4596,12 +4586,12 @@ Pull requests وأفكار تحسين مرحب بها 👋
 
 # copy past all files file by file
 
-سأضع لك كل الملفات الأساسية **جاهزة للـ copy‑paste**، ملفًا بعد ملف، بالترتيب المنطقي داخل مشروعك `baligh-1.5b-v0/`.
+سأضع لك كل الملفات الأساسية **جاهزة للـ copy‑paste**، ملفًا بعد ملف، بالترتيب المنطقي داخل مشروعك `Baligh-1.7B-v0/`.
 
 الهيكل المستهدف:
 
 ```bash
-baligh-1.5b-v0/
+Baligh-1.7B-v0/
   README.md
   requirements.txt
 
@@ -4629,9 +4619,9 @@ baligh-1.5b-v0/
 ## 1️⃣ `README.md` (في جذر المشروع)
 
 ```markdown
-# Baligh-1.5B-v0
+# Baligh-1.7B-v0
 
-Baligh-1.5B-v0 هو نموذج لغة عربي (1.5B) مبني على Qwen2.5-1.5B عبر Unsloth، مع Supervised Fine-tuning (SFT) على بيانات تعليمات عربية (CIDAR, evol-instruct-arabic, إلخ).  
+Baligh-1.7B-v0 هو نموذج لغة عربي (1.5B) مبني على Qwen3-1.7B عبر Unsloth، مع Supervised Fine-tuning (SFT) على بيانات تعليمات عربية (CIDAR, evol-instruct-arabic, إلخ).  
 هذا الريبو يتيح لك تشغيل **تدريب كامل** على **Google Colab T4** باستخدام **Colab CLI** من الترمينال، ثم رفع النموذج إلى Hugging Face.
 
 ## ✨ الميزات
@@ -4639,7 +4629,7 @@ Baligh-1.5B-v0 هو نموذج لغة عربي (1.5B) مبني على Qwen2.5-1.
 - Clear architecture: فصل بين `config`, `data`, `scripts`, `models`, `logs`.
 - Config-driven بالكامل عبر `config/baligh_pipeline_config.json`.
 - Data mixing لـ SFT من Hugging Face datasets (CIDAR, evol-instruct-arabic, ArSyra, Quran QA).
-- تدريب SFT باستخدام Unsloth + QLoRA على Qwen2.5-1.5B 4-bit (مناسب لـ T4 GPU).
+- تدريب SFT باستخدام Unsloth + QLoRA على Qwen3-1.7B 4-bit (مناسب لـ T4 GPU).
 - دعم train/validation split و eval أثناء التدريب.
 - سكربت رفع جاهز إلى Hugging Face Hub.
 
@@ -4648,7 +4638,7 @@ Baligh-1.5B-v0 هو نموذج لغة عربي (1.5B) مبني على Qwen2.5-1.
 ## 1️⃣ بنية المشروع
 
 ```bash
-baligh-1.5b-v0/
+Baligh-1.7B-v0/
   README.md
   requirements.txt
 
@@ -4669,7 +4659,7 @@ baligh-1.5b-v0/
     upload_to_hf.py
 
   models/
-    Baligh-1.5B-v0-lora/
+    Baligh-1.7B-v0-lora/
 
   logs/
     train/
@@ -4716,8 +4706,8 @@ config/baligh_pipeline_config.json
 ## 4️⃣ التشغيل end-to-end على Colab CLI + T4
 
 ```bash
-git clone <this_repo_url> baligh-1.5b-v0
-cd baligh-1.5b-v0
+git clone <this_repo_url> Baligh-1.7B-v0
+cd Baligh-1.7B-v0
 
 pip install -U google-colab-cli
 colab auth login
@@ -4728,7 +4718,7 @@ colab auth login
 بعد الانتهاء، سيظهر النموذج في:
 
 ```bash
-models/Baligh-1.5B-v0-lora/
+models/Baligh-1.7B-v0-lora/
 ```
 
 ثم:
@@ -4748,7 +4738,7 @@ python scripts/upload_to_hf.py
 from unsloth import FastLanguageModel
 
 model, tokenizer = FastLanguageModel.from_pretrained(
-    "your-org/Baligh-1.5B-v0",   # أو المسار المحلي ./models/Baligh-1.5B-v0-lora
+    "your-org/Baligh-1.7B-v0",  # أو المسار المحلي ./models/Baligh-1.7B-v0-lora
     max_seq_length=2048,
     dtype=None,
     load_in_4bit=True,
@@ -4792,9 +4782,9 @@ huggingface_hub
 ```json
 {
   "project": {
-    "name": "Baligh-1.5B-v0",
+    "name": "Baligh-1.7B-v0",
     "org": "your-org",
-    "base_model": "unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit"
+    "base_model": "unsloth/Qwen3-1.7B-Base"
   },
   "cpt": {
     "output_path": "data/cpt/baligh_cpt_mixture",
@@ -4817,9 +4807,9 @@ huggingface_hub
     ]
   },
   "train": {
-    "model_name": "unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit",
+    "model_name": "unsloth/Qwen3-1.7B-Base",
     "max_seq_length": 2048,
-    "output_dir": "models/Baligh-1.5B-v0-lora",
+    "output_dir": "models/Baligh-1.7B-v0-lora",
     "per_device_train_batch_size": 2,
     "gradient_accumulation_steps": 4,
     "warmup_steps": 10,
@@ -4843,7 +4833,7 @@ huggingface_hub
     ]
   },
   "hf": {
-    "repo_id": "your-org/Baligh-1.5B-v0",
+    "repo_id": "your-org/Baligh-1.7B-v0",
     "private": false
   }
 }
@@ -4879,14 +4869,10 @@ def load_and_normalize_dataset(name: str, split: str, text_field: str):
 
     if text_field not in ds.column_names:
         candidates = [
-            c
-            for c in ds.column_names
-            if c.lower() in ["text", "content", "article", "body"]
+            c for c in ds.column_names if c.lower() in ["text", "content", "article", "body"]
         ]
         if not candidates:
-            raise ValueError(
-                f"No suitable text field found for {name}. Columns: {ds.column_names}"
-            )
+            raise ValueError(f"No suitable text field found for {name}. Columns: {ds.column_names}")
         logging.warning(
             "text_field '%s' not in columns for %s, using inferred '%s'",
             text_field,
@@ -5050,18 +5036,10 @@ PROMPT_NO_INPUT = """### Instruction:
 
 def normalize_sample(example):
     instruction = (
-        example.get("instruction")
-        or example.get("question")
-        or example.get("prompt")
-        or ""
+        example.get("instruction") or example.get("question") or example.get("prompt") or ""
     )
     inp = example.get("input") or example.get("context") or ""
-    response = (
-        example.get("output")
-        or example.get("answer")
-        or example.get("response")
-        or ""
-    )
+    response = example.get("output") or example.get("answer") or example.get("response") or ""
 
     instruction = (instruction or "").strip()
     inp = (inp or "").strip()
@@ -5140,9 +5118,7 @@ def split_train_val(dataset, val_ratio, seed):
 
     val_size = int(len(dataset) * val_ratio)
     if val_size == 0:
-        logging.warning(
-            "val_ratio too small, no validation rows. Using full dataset as train."
-        )
+        logging.warning("val_ratio too small, no validation rows. Using full dataset as train.")
         return DatasetDict({"train": dataset})
 
     logging.info("Splitting dataset: %d train / %d validation", len(dataset) - val_size, val_size)
@@ -5389,15 +5365,15 @@ echo "[Baligh] Colab session name: $SESSION_NAME"
 # 1) إنشاء Colab session مع T4 GPU
 colab new -s "$SESSION_NAME" --gpu T4
 
-# 2) رفع المشروع إلى /workspace/baligh-1.5b-v0 في الـ runtime
+# 2) رفع المشروع إلى /workspace/Baligh-1.7B-v0 في الـ runtime
 echo "[Baligh] Uploading project to Colab..."
-colab upload -s "$SESSION_NAME" "$PROJECT_ROOT" /workspace/baligh-1.5b-v0
+colab upload -s "$SESSION_NAME" "$PROJECT_ROOT" /workspace/Baligh-1.7B-v0
 
 # 3) تثبيت المتطلبات داخل runtime
 echo "[Baligh] Installing requirements in Colab..."
 colab exec -s "$SESSION_NAME" -- << 'PY'
 import os, subprocess
-os.chdir("/workspace/baligh-1.5b-v0")
+os.chdir("/workspace/Baligh-1.7B-v0")
 subprocess.check_call(["pip", "install", "-U", "-r", "requirements.txt"])
 PY
 
@@ -5405,7 +5381,7 @@ PY
 echo "[Baligh] Building SFT mixture..."
 colab exec -s "$SESSION_NAME" -- << 'PY'
 import os, subprocess
-os.chdir("/workspace/baligh-1.5b-v0")
+os.chdir("/workspace/Baligh-1.7B-v0")
 subprocess.check_call(["python", "scripts/04_build_sft_mixture.py"])
 PY
 
@@ -5413,18 +5389,18 @@ PY
 echo "[Baligh] Training SFT with Unsloth..."
 colab exec -s "$SESSION_NAME" -- << 'PY'
 import os, subprocess
-os.chdir("/workspace/baligh-1.5b-v0")
+os.chdir("/workspace/Baligh-1.7B-v0")
 subprocess.check_call(["python", "scripts/03_train_sft_unsloth.py"])
 PY
 
 # 6) تنزيل النموذج النهائي
-echo "[Baligh] Downloading trained model to local ./models/Baligh-1.5B-v0-lora ..."
+echo "[Baligh] Downloading trained model to local ./models/Baligh-1.7B-v0-lora ..."
 mkdir -p "$PROJECT_ROOT/models"
 colab download -s "$SESSION_NAME" \
-  /workspace/baligh-1.5b-v0/models/Baligh-1.5B-v0-lora \
-  "$PROJECT_ROOT/models/Baligh-1.5B-v0-lora"
+  /workspace/Baligh-1.7B-v0/models/Baligh-1.7B-v0-lora \
+  "$PROJECT_ROOT/models/Baligh-1.7B-v0-lora"
 
-echo "[Baligh] Pipeline finished. Model at models/Baligh-1.5B-v0-lora"
+echo "[Baligh] Pipeline finished. Model at models/Baligh-1.7B-v0-lora"
 ```
 
 
@@ -5465,7 +5441,7 @@ def main():
         repo_id=repo_id,
         folder_path=str(model_dir),
         repo_type="model",
-        commit_message="Upload Baligh-1.5B-v0 model",
+        commit_message="Upload Baligh-1.7B-v0 model",
     )
 
     print(f"[HF_UPLOAD] Done. Model is at: https://huggingface.co/{repo_id}")
@@ -5482,7 +5458,7 @@ if __name__ == "__main__":
 الخطوات الآن:
 
 ```bash
-cd baligh-1.5b-v0
+cd Baligh-1.7B-v0
 pip install -U google-colab-cli huggingface_hub
 colab auth login
 huggingface-cli login
@@ -5500,14 +5476,14 @@ python scripts/upload_to_hf.py  # رفع إلى HF
 
 اللينك اللي أرسلته هو ريبو `train-llm-from-scratch` بتاع Fareed Khan، وفيه implementation كامل لـ Transformer + pipeline تدريب من الصفر (data download → preprocess → train → generate) مع suite بعد كده لـ SFT / RLHF (SFT, Reward Model, PPO, DPO, GRPO) مكتوبة بـ PyTorch pure بدون `transformers` أو `trl`.[^18_1]
 
-ريبو زي ده مفيد لك في Baligh-1.5B في حاجتين رئيسيتين:
+ريبو زي ده مفيد لك في Baligh-1.7B في حاجتين رئيسيتين:
 
 - كـ **مرجع معماري وتعليمي** لو حابب تفهم/تتحكم أكتر في layers, attention, training loop.[^18_1]
 - أو لو في المستقبل حبيت **تعمل Arabic LLM من الصفر** (مش بس CPT/SFT على Qwen2.5) باستخدام نفس الأفكار لكن مع ArabicWeb24 بدل The Pile.[^18_2][^18_3][^18_4][^18_1]
 
-بسّ، الـ pipeline اللي بنيناه لـ Baligh-1.5B-v0 حاليًا:
+بسّ، الـ pipeline اللي بنيناه لـ Baligh-1.7B-v0 حاليًا:
 
-- مبني على **Qwen2.5-1.5B + Unsloth** مع `transformers`/`trl` و Colab CLI.
+- مبني على **Qwen3-1.7B + Unsloth** مع `transformers`/`trl` و Colab CLI.
 - أما مشروع Fareed فهو:
     - transformer custom في `src/models/` (mlp.py, attention.py, transformer_block.py, transformer.py).
     - config في `config/config.py` + JSON configs في `configs/`.
@@ -5523,7 +5499,7 @@ python scripts/upload_to_hf.py  # رفع إلى HF
 
 أفضل استخدام عملي لك الآن:
 
-1. تكمّل Baligh-1.5B-v0 زي ما هو (Qwen2.5 + SFT Arabic) على Colab CLI.
+1. تكمّل Baligh-1.7B-v0 زي ما هو (Qwen2.5 + SFT Arabic) على Colab CLI.
 2. تستخدم ريبو Fareed كـ “reference lab”:
     - تقرأ `config/config.py` و `scripts/train_transformer.py` وتشوف إزاي بيضبط hyperparameters و training loop.
     - لو حابب تعمل Arabic LLM small (مثلاً 13M–100M) من الصفر على ArabicWeb24، تستخدم نفس architecture/loop لكن تغيّر:
@@ -5533,7 +5509,7 @@ python scripts/upload_to_hf.py  # رفع إلى HF
 لو قصدك من اللينك إنك عايز:
 
 - خطة دمج معينة (مثلاً: “عايز أستخدم loop التدريب بتاعه بس مع Qwen2.5”)، أو
-- إن Baligh-1.5B-v1 يبقى “transformer من الصفر على ArabicWeb24” بنفس style الريبو ده،
+- إن Baligh-1.7B-v1 يبقى “transformer من الصفر على ArabicWeb24” بنفس style الريبو ده،
 
 قول لي بالظبط أنت عايز تعمل إيه بالريبو ده في سياق Baligh، وسأكتب لك plan خطوة بخطوة (مثلاً: “fork + حذف data_download + استبدالها بـ ArabicWeb24 + تحديث config + تعديل training script…”) تناسب هدفك.
 

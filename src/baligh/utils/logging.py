@@ -1,7 +1,8 @@
-"""Logging setup for Baligh-1.5B v0."""
+"""Logging setup for Baligh-1.7B v0."""
 
 import logging
 import sys
+import types
 from pathlib import Path
 
 from loguru import logger
@@ -9,7 +10,7 @@ from loguru import logger
 from baligh.config import get_config
 
 
-def setup_logging(
+def setup_logging(  # noqa: ANN401
     log_level: str = "INFO",
     log_format: str = "text",
     log_file: Path | None = None,
@@ -66,30 +67,39 @@ class InterceptHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         # Get corresponding Loguru level if it exists
+        level: str | int
         try:
             level = logger.level(record.levelname).name
         except ValueError:
             level = record.levelno
 
         # Find caller from where originated the logged message
-        frame, depth = logging.currentframe(), 2
-        while frame.f_code.co_filename == logging.__file__:
+        frame: types.FrameType | None = logging.currentframe()
+        depth = 2
+        while frame is not None and frame.f_code.co_filename == logging.__file__:
             frame = frame.f_back
             depth += 1
 
         logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
-def get_logger(name: str):
-    """Get a logger instance with the given name."""
-    return logger.bind(name=name)
+def get_logger(name: str):  # noqa: ARG001 - name kept for API/back-compat
+    """Get a logger instance.
+
+    Importing this module has no side effects; entry points must call
+    :func:`setup_logging` explicitly to configure handlers. The ``name``
+    argument is accepted for logging-API compatibility (loguru derives the
+    module name from the call stack).
+    """
+    return logger
 
 
-# Initialize on import
-config = get_config()
-setup_logging(
-    log_level=config.log_level,
-    log_format=config.log_format,
-    log_file=config.logs_dir / "baligh.log" if config.logs_dir else None,
-    json_logs=config.log_format == "json",
-)
+def setup_default_logging() -> None:
+    """Set up logging from the project BaseConfig (convenience for scripts)."""
+    config = get_config()
+    setup_logging(
+        log_level=config.log_level,
+        log_format=config.log_format,
+        log_file=config.logs_dir / "baligh.log" if config.logs_dir else None,
+        json_logs=config.log_format == "json",
+    )

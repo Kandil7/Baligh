@@ -20,17 +20,17 @@ Line 6: Create logger.
 ## Constants (Lines 8-10)
 
 ```python
-REQUIRED_CPT_COLUMNS = ['text']
+REQUIRED_CPT_COLUMNS = ["text"]
 ```
 Line 8: CPT datasets must have a 'text' column. This is the raw text for language modeling.
 
 ```python
-REQUIRED_SFT_COLUMNS = ['instruction', 'output']
+REQUIRED_SFT_COLUMNS = ["instruction", "output"]
 ```
 Line 9: SFT datasets must have 'instruction' and 'output' columns. 'input' is optional.
 
 ```python
-OPTIONAL_SFT_COLUMNS = ['input']
+OPTIONAL_SFT_COLUMNS = ["input"]
 ```
 Line 10: 'input' column is optional for SFT. Some instructions need additional context, some don't.
 
@@ -44,32 +44,32 @@ def validate_cpt_example(example):
 Line 12: Validate a single CPT example. Returns (is_valid, error_message).
 
 ```python
-    if not example.get('text'):
-        return False, 'Missing text field'
+if not example.get("text"):
+    return False, "Missing text field"
 ```
 Lines 13-14: Check if 'text' field exists and is not empty. `.get('text')` returns None if missing, and `not None` is True.
 
 ```python
-    text = example['text']
-    if not isinstance(text, str):
-        return False, 'Text field must be string'
+text = example["text"]
+if not isinstance(text, str):
+    return False, "Text field must be string"
 ```
 Lines 15-17: Check that text is actually a string (not a list, dict, or other type).
 
 ```python
-    if len(text) < 50:
-        return False, 'Text too short'
+if len(text) < 50:
+    return False, "Text too short"
 ```
 Lines 18-19: Text must be at least 50 characters. Shorter texts are usually noise (HTML fragments, single words, etc.).
 
 ```python
-    if len(text) > 100000:
-        return False, 'Text too long'
+if len(text) > 100000:
+    return False, "Text too long"
 ```
 Lines 20-21: Text must be under 100,000 characters. Longer texts are likely HTML leakage or data errors.
 
 ```python
-    return True, ''
+return True, ""
 ```
 Line 22: All checks passed. Return True with empty error message.
 
@@ -83,28 +83,28 @@ def validate_sft_example(example):
 Line 24: Validate a single SFT example.
 
 ```python
-    for col in REQUIRED_SFT_COLUMNS:
-        if not example.get(col):
-            return False, 'Missing %s field' % col
-        if not isinstance(example[col], str):
-            return False, '%s field must be string' % col
+for col in REQUIRED_SFT_COLUMNS:
+    if not example.get(col):
+        return False, "Missing %s field" % col
+    if not isinstance(example[col], str):
+        return False, "%s field must be string" % col
 ```
 Lines 25-29: Check that required columns (instruction, output) exist and are strings.
 
 ```python
-    if len(example['instruction']) < 5:
-        return False, 'Instruction too short'
+if len(example["instruction"]) < 5:
+    return False, "Instruction too short"
 ```
 Lines 30-31: Instruction must be at least 5 characters. Very short instructions are usually malformed.
 
 ```python
-    if len(example['output']) < 5:
-        return False, 'Output too short'
+if len(example["output"]) < 5:
+    return False, "Output too short"
 ```
 Lines 32-33: Output must be at least 5 characters.
 
 ```python
-    return True, ''
+return True, ""
 ```
 Line 34: All checks passed.
 
@@ -118,10 +118,10 @@ def validate_dataset(dataset, dataset_type='cpt'):
 Line 36: Validate an entire dataset. Takes a Dataset object and type ('cpt' or 'sft').
 
 ```python
-    if dataset_type == 'cpt':
-        validator = validate_cpt_example
-    else:
-        validator = validate_sft_example
+if dataset_type == "cpt":
+    validator = validate_cpt_example
+else:
+    validator = validate_sft_example
 ```
 Lines 37-40: Select the appropriate validator based on dataset type.
 
@@ -147,13 +147,13 @@ Lines 44-50: Iterate over every example in the dataset:
 - Track error types and their frequencies
 
 ```python
-    logger.info('Validation: %d valid, %d invalid' % (valid_count, invalid_count))
+logger.info("Validation: %d valid, %d invalid" % (valid_count, invalid_count))
 ```
 Line 51: Log the validation results.
 
 ```python
-    if errors:
-        logger.warning('Validation errors: %s' % errors)
+if errors:
+    logger.warning("Validation errors: %s" % errors)
 ```
 Lines 52-53: Log error details if any were found.
 
@@ -177,8 +177,8 @@ Line 56: Check that a dataset has all required columns.
 Line 57: Find columns that are in required_columns but not in the dataset.
 
 ```python
-    if missing:
-        raise ValueError('Missing columns: %s' % missing)
+if missing:
+    raise ValueError("Missing columns: %s" % missing)
 ```
 Lines 58-59: If any required columns are missing, raise an error.
 
@@ -213,14 +213,14 @@ Lines 64-65: If no valid lengths, return empty dict.
 Line 66: Import numpy inside the function to avoid slow import at module load time.
 
 ```python
-    return {
-        'count': len(lengths),
-        'mean_length': float(np.mean(lengths)),
-        'median_length': float(np.median(lengths)),
-        'min_length': min(lengths),
-        'max_length': max(lengths),
-        'total_chars': sum(lengths),
-    }
+return {
+    "count": len(lengths),
+    "mean_length": float(np.mean(lengths)),
+    "median_length": float(np.median(lengths)),
+    "min_length": min(lengths),
+    "max_length": max(lengths),
+    "total_chars": sum(lengths),
+}
 ```
 Lines 67-74: Return a dict with:
 - count: Number of examples

@@ -1,6 +1,6 @@
-# Baligh-1.5B on Modal
+# Baligh-1.7B on Modal
 
-Run Baligh-1.5B training and inference on Modal's serverless GPU cloud.
+Run Baligh-1.7B training and inference on Modal's serverless GPU cloud.
 
 ## Setup
 

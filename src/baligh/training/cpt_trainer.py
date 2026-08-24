@@ -1,16 +1,21 @@
-"""Continued Pretraining Trainer for Baligh-1.5B v0."""
+"""Continued Pretraining Trainer for Baligh-1.7B v0.
 
-from dataclasses import dataclass
+Expects PRE-FORMATTED datasets (columns: input_ids / attention_mask /
+labels) produced by ``baligh.data.prepare_data`` or
+``PromptFormatter.format_cpt_batch``.
 
-import torch
-from peft import prepare_model_for_kbit_training
+Stack: transformers ``Trainer`` + PEFT QLoRA. Unsloth is NOT used on this
+code path (it remains available in the Colab notebooks).
+"""
+
 from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments
 
 from baligh.config import get_config, get_cpt_config, get_model_config
-from baligh.data.formatter import get_cpt_formatter
 from baligh.models.loader import apply_lora, load_base_model
 from baligh.models.tokenizer import get_tokenizer
+from baligh.training.callbacks import LoggingCallback, MemoryCallback
 from baligh.training.checkpoint import CheckpointManager
+from baligh.utils.hardware import resolve_precision
 from baligh.utils.logging import get_logger
 from baligh.utils.memory import log_memory_stats
 from baligh.utils.seeding import set_seed
@@ -18,11 +23,23 @@ from baligh.utils.seeding import set_seed
 logger = get_logger(__name__)
 
 
-@dataclass
-class CPTTrainingState:
-    global_step: int = 0
-    epoch: float = 0.0
-    best_loss: float = float("inf")
+def resolve_reporters(wandb_project=None, wandb_api_key=None) -> list[str]:
+    """Pick reporting backends that cannot block training.
+
+    wandb without an API key (and not explicitly offline) hangs on an
+    interactive login prompt — exactly what you don't want mid-run on a
+    rented GPU. Default to tensorboard; opt into wandb deliberately.
+    """
+    import os
+
+    if wandb_project and (wandb_api_key or os.environ.get("WANDB_MODE") == "offline"):
+        return ["wandb", "tensorboard"]
+    if wandb_project:
+        logger.warning(
+            "wandb_project is set but no API key found (set WANDB_API_KEY or "
+            "WANDB_MODE=offline) — reporting to tensorboard only"
+        )
+    return ["tensorboard"]
 
 
 class CPTTrainer:
@@ -45,11 +62,6 @@ class CPTTrainer:
 
         self.tokenizer = tokenizer or get_tokenizer(
             self.model_config.tokenizer_name, self.model_config.max_seq_length
-        )
-        self.formatter = get_cpt_formatter(
-            self.model_config.tokenizer_name,
-            self.model_config.max_seq_length,
-            packing=self.config.packing,
         )
 
         if model is None:
@@ -81,27 +93,33 @@ class CPTTrainer:
         return cls(config=config, **kwargs)
 
     def _setup_model(self):
-        model = load_base_model(
-            model_name=self.model_config.unsloth_model_name,
-            load_in_4bit=self.model_config.load_in_4bit,
-            load_in_8bit=self.model_config.load_in_8bit,
-            torch_dtype=(
-                torch.bfloat16
-                if self.model_config.bnb_4bit_compute_dtype == "bfloat16"
-                else torch.float16
-            ),
-            attn_implementation=self.model_config.attn_implementation,
-            use_cache=False,
+        """Load base + LoRA. K-bit preparation happens once, inside
+        load_base_model — repeating it post-LoRA double-upcasts norms."""
+        return apply_lora(
+            load_base_model(
+                model_name=self.model_config.model_name,
+                load_in_4bit=self.model_config.load_in_4bit,
+                load_in_8bit=self.model_config.load_in_8bit,
+                use_cache=False,
+                is_inference=False,
+            )
         )
-        model = apply_lora(model)
-        model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
-        return model
 
     def _create_training_args(self):
-        return TrainingArguments(  # type: ignore[call-arg]
+        precision = resolve_precision(self.base_config.mixed_precision)
+        # max_steps > 0 takes precedence over epochs in HF Trainer; passing
+        # both is misleading. Only forward the one that will actually drive
+        # the schedule.
+        max_steps = self.config.max_steps
+        num_train_epochs = (
+            None
+            if (max_steps is not None and max_steps > 0)
+            else (self.config.num_train_epochs or 1.0)
+        )
+        return TrainingArguments(
             output_dir=str(self.output_dir),
-            max_steps=self.config.max_steps,
-            num_train_epochs=self.config.num_train_epochs,
+            max_steps=max_steps,
+            num_train_epochs=num_train_epochs,
             per_device_train_batch_size=self.config.per_device_train_batch_size,
             gradient_accumulation_steps=self.config.gradient_accumulation_steps,
             learning_rate=self.config.learning_rate,
@@ -117,7 +135,7 @@ class CPTTrainer:
             save_steps=self.config.save_steps,
             save_total_limit=self.config.save_total_limit,
             eval_steps=self.config.eval_steps,
-            evaluation_strategy=self.config.evaluation_strategy,  # type: ignore[call-arg]
+            eval_strategy=self.config.eval_strategy,
             load_best_model_at_end=True,
             metric_for_best_model="eval_loss",
             greater_is_better=False,
@@ -125,16 +143,14 @@ class CPTTrainer:
             dataloader_pin_memory=self.config.dataloader_pin_memory,
             dataloader_drop_last=self.config.dataloader_drop_last,
             remove_unused_columns=False,
-            report_to=(
-                ["wandb", "tensorboard"]
-                if self.base_config.wandb_project
-                else ["tensorboard"]
+            report_to=resolve_reporters(
+                self.base_config.wandb_project, self.base_config.wandb_api_key
             ),
-            run_name="baligh-cpt",
+            run_name="baligh-1.7b-cpt",
             seed=self.base_config.seed,
             data_seed=self.base_config.seed,
-            bf16=self.base_config.mixed_precision == "bf16",
-            fp16=self.base_config.mixed_precision == "fp16",
+            bf16=precision == "bf16",
+            fp16=precision == "fp16",
             gradient_checkpointing=True,
             ddp_find_unused_parameters=False,
         )
@@ -148,7 +164,8 @@ class CPTTrainer:
             train_dataset=self.train_dataset,
             eval_dataset=self.eval_dataset,
             data_collator=data_collator,
-            tokenizer=self.tokenizer,  # type: ignore[call-arg]
+            processing_class=self.tokenizer,
+            callbacks=[LoggingCallback(), MemoryCallback(log_every_n_steps=100)],
         )
 
     def train(self, resume_from_checkpoint=None):

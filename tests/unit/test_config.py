@@ -1,22 +1,18 @@
 """Tests for configuration management."""
 
-import pytest
 from pathlib import Path
+
+import pytest
+
 from baligh.config import (
     BaseConfig,
-    ModelConfig,
-    LoRAConfig,
     CPTConfig,
-    SFTConfig,
     EvalConfig,
+    LoRAConfig,
+    ModelConfig,
     QuantizationConfig,
+    SFTConfig,
     get_config,
-    get_model_config,
-    get_lora_config,
-    get_cpt_config,
-    get_sft_config,
-    get_eval_config,
-    get_quantization_config,
 )
 
 
@@ -46,7 +42,8 @@ class TestModelConfig:
 
     def test_default_values(self):
         config = ModelConfig()
-        assert config.model_name == "Qwen/Qwen2.5-1.5B"
+        # Baligh-1.7B fine-tunes the unsloth Qwen3-1.7B base mirror.
+        assert config.model_name == "unsloth/Qwen3-1.7B-Base"
         assert config.max_seq_length == 2048
         assert config.load_in_4bit is True
         assert config.use_cache is False
@@ -117,6 +114,13 @@ class TestSFTConfig:
         assert "evol_instruct_arabic" in config.dataset_mix
         assert sum(config.dataset_mix.values()) == pytest.approx(1.0)
 
+    def test_dataset_mix_datasets_are_registered(self):
+        from baligh.data.datasets import DATASETS
+
+        for cfg in (CPTConfig(), SFTConfig()):
+            for name in cfg.dataset_mix:
+                assert name in DATASETS, f"Mix references unregistered dataset: {name}"
+
 
 class TestEvalConfig:
     """Tests for EvalConfig."""
@@ -126,7 +130,15 @@ class TestEvalConfig:
         assert config.max_new_tokens == 512
         assert config.temperature == 0.7
         assert config.top_p == 0.9
-        assert config.do_sample is True
+        # Greedy decoding by default: benchmarks must be reproducible.
+        assert config.do_sample is False
+
+    def test_eval_datasets_are_registered(self):
+        from baligh.data.datasets import DATASETS
+
+        config = EvalConfig()
+        for name in config.eval_datasets:
+            assert name in DATASETS, f"EvalConfig references unregistered dataset: {name}"
 
     def test_human_eval_rubric(self):
         config = EvalConfig()

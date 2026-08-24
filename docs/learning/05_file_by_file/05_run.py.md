@@ -4,7 +4,7 @@
 
 ## Purpose
 
-Google Colab notebook runner for Baligh-1.5B v0 training and inference.
+Google Colab notebook runner for Baligh-1.7B v0 training and inference.
 
 ---
 

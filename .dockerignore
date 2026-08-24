@@ -1,0 +1,26 @@
+# Ignore everything by default, whitelist what images actually need
+*
+!requirements/
+!requirements/**
+!src/
+!src/**
+!configs/
+!configs/**
+!pyproject.toml
+!README.md
+!Makefile
+
+# Never bake secrets or local artifacts into image layers
+**/.env*
+**/.git
+**/__pycache__
+**/*.pyc
+**/wandb/
+**/data/
+**/training/
+**/eval/
+**/release/
+**/htmlcov/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/

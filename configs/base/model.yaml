@@ -1,14 +1,18 @@
-model:
-  name: Qwen/Qwen2.5-1.5B
-  unsloth_name: unsloth/Qwen2.5-1.5B-unsloth-bnb-4bit
-  trust_remote_code: true
+﻿model:
+  name: unsloth/Qwen3-1.7B-Base
+
+  trust_remote_code: false
   max_seq_length: 2048
   padding_side: right
   truncation_side: right
   load_in_4bit: true
   load_in_8bit: false
-  bnb_4bit_compute_dtype: bfloat16
+  # fp16 is safe on all target GPUs; bf16 requires sm_80+ (Ampere)
+  bnb_4bit_compute_dtype: float16
   bnb_4bit_quant_type: nf4
   bnb_4bit_use_double_quant: true
   use_cache: false
-  attn_implementation: flash_attention_2
+  # null = auto-resolve: flash_attention_2 on sm_80+, sdpa on older GPUs
+  attn_implementation: null
+
+

@@ -1,4 +1,4 @@
-"""Utilities package for Baligh-1.5B v0."""
+"""Utilities package for Baligh-1.7B v0."""
 
 from baligh.utils.distributed import (
     barrier,
