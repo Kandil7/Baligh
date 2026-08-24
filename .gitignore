@@ -50,6 +50,9 @@ release/
 # Checkpoints
 checkpoint-*/
 
+# Auto-generated session checkpoints
+docs/PROJECT-CHECKPOINT.auto.md
+
 # Logs
 *.log
 wandb/
