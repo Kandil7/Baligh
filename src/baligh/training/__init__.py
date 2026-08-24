@@ -1,5 +1,7 @@
 """Training package for Baligh-1.7B v0."""
 
+from typing import Any
+
 from baligh.training.callbacks import CheckpointCallback, LoggingCallback, MemoryCallback
 from baligh.training.checkpoint import CheckpointManager
 from baligh.training.lora_config import create_lora_config, create_quantization_config
@@ -17,7 +19,7 @@ __all__ = [
 ]
 
 
-def __getattr__(name):
+def __getattr__(name: str) -> Any:  # PEP 562 lazy exports
     if name in ("CPTTrainer", "train_cpt"):
         from baligh.training.cpt_trainer import CPTTrainer, train_cpt
 

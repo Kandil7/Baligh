@@ -12,7 +12,13 @@ Two load modes:
 """
 
 import torch
-from peft import LoraConfig, PeftModel, get_peft_model, prepare_model_for_kbit_training
+from peft import (
+    LoraConfig,
+    PeftMixedModel,
+    PeftModel,
+    get_peft_model,
+    prepare_model_for_kbit_training,
+)
 from transformers import (
     AutoModelForCausalLM,
     BitsAndBytesConfig,
@@ -124,7 +130,7 @@ def load_base_model(
 def apply_lora(
     model: PreTrainedModel,
     lora_config: LoraConfig | None = None,
-) -> PeftModel:
+) -> PeftModel | PeftMixedModel:
     """Attach LoRA adapters (built from baligh.training.lora_config by default)."""
     if lora_config is None:
         from baligh.training.lora_config import create_lora_config
@@ -132,9 +138,9 @@ def apply_lora(
         lora_config = create_lora_config()
 
     logger.info(f"Applying LoRA: r={lora_config.r}, alpha={lora_config.lora_alpha}")
-    model = get_peft_model(model, lora_config)  # type: ignore[assignment]
-    model.print_trainable_parameters()  # type: ignore[union-attr]
-    return model  # type: ignore[return-value]
+    peft_model: PeftModel | PeftMixedModel = get_peft_model(model, lora_config)
+    peft_model.print_trainable_parameters()
+    return peft_model
 
 
 def load_lora_model(
@@ -182,7 +188,8 @@ def merge_lora(
         logger.info(f"Saving merged model to: {save_path}")
         merged_model.save_pretrained(save_path, safe_serialization=True)
 
-    return merged_model
+    merged: PreTrainedModel = merged_model  # merge_and_unload returns Any
+    return merged
 
 
 def load_tokenizer(

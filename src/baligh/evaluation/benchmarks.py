@@ -1,6 +1,7 @@
 """Benchmark runners for Baligh-1.7B v0."""
 
 import re
+from typing import Any
 
 from datasets import load_dataset
 
@@ -66,7 +67,7 @@ def _mmlu_fields(example: dict) -> tuple[str, list[str], str] | None:
     return str(question), choices, gold_letter
 
 
-def run_mmlu_arabic(evaluator, max_samples=100):
+def run_mmlu_arabic(evaluator: Any, max_samples: int = 100) -> dict:
     """MMLU-Arabic multiple-choice accuracy.
 
     Prompt demands the bare choice letter (Arabic instruction); extraction
@@ -75,7 +76,7 @@ def run_mmlu_arabic(evaluator, max_samples=100):
     logger.info("Running MMLU-Arabic benchmark")
     dataset = load_dataset("FreedomIntelligence/MMLU_Arabic", split="test")
 
-    results = []
+    results: list[dict[str, object]] = []
     skipped = 0
     for raw in dataset.select(range(min(max_samples, len(dataset)))):
         fields = _mmlu_fields(raw)
@@ -93,12 +94,12 @@ def run_mmlu_arabic(evaluator, max_samples=100):
 
     if skipped:
         logger.warning(f"MMLU-Arabic: skipped {skipped} malformed examples")
-    accuracy = sum(r["correct"] for r in results) / len(results) if results else 0
+    accuracy = sum(1 for r in results if r["correct"]) / len(results) if results else 0
     logger.info(f"MMLU-Arabic accuracy: {accuracy:.4f} over {len(results)} examples")
     return {"accuracy": accuracy, "results": results}
 
 
-def run_cidar_eval(evaluator, max_samples=100):
+def run_cidar_eval(evaluator: Any, max_samples: int = 100) -> dict:
     """CIDAR generation benchmark (ROUGE/BLEU against references)."""
     logger.info("Running CIDAR evaluation")
     dataset = load_dataset("arbml/CIDAR", split="test")
@@ -118,7 +119,7 @@ def run_cidar_eval(evaluator, max_samples=100):
     return {"rouge": rouge, "bleu": bleu, "predictions": predictions, "references": references}
 
 
-def run_islamic_qa(evaluator, dataset, max_samples=100):
+def run_islamic_qa(evaluator: Any, dataset: Any, max_samples: int = 100) -> dict:
     """Islamic QA evaluation (ROUGE + normalized exact match)."""
     logger.info("Running Islamic QA evaluation")
     predictions = []

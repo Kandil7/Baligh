@@ -1,8 +1,11 @@
 """Text generation for Baligh-1.7B v0."""
 
-import torch
+from typing import Any, cast
 
-from baligh.config import get_eval_config, get_model_config
+import torch
+from transformers import GenerationMixin, PreTrainedModel
+
+from baligh.config import EvalConfig, get_eval_config, get_model_config
 from baligh.models.loader import load_model_with_adapter
 from baligh.models.tokenizer import get_tokenizer
 from baligh.utils.logging import get_logger
@@ -11,7 +14,12 @@ logger = get_logger(__name__)
 
 
 class TextGenerator:
-    def __init__(self, model_path, adapter_path=None, config=None):
+    def __init__(
+        self,
+        model_path: str,
+        adapter_path: str | None = None,
+        config: EvalConfig | None = None,
+    ) -> None:
         self.config = config or get_eval_config()
         self.model_config = get_model_config()
         self.tokenizer = get_tokenizer(
@@ -21,23 +29,28 @@ class TextGenerator:
         logger.info(f"Loading model: {model_path}")
         # is_inference=True keeps the KV cache enabled and skips k-bit
         # training preparation (which would disable it).
-        self.model = load_model_with_adapter(
-            model_path_or_name=model_path,
-            adapter_path=adapter_path,
-            is_inference=True,
+        # PeftModel exposes .generate via its base-model proxy at runtime;
+        # typed here as the generative interface mypy can verify.
+        self.model: PreTrainedModel = cast(
+            "PreTrainedModel",
+            load_model_with_adapter(
+                model_path_or_name=model_path,
+                adapter_path=adapter_path,
+                is_inference=True,
+            ),
         )
         self.model.eval()
 
     def generate(
         self,
-        prompt,
-        max_new_tokens=None,
-        temperature=None,
-        top_p=None,
-        top_k=None,
-        do_sample=None,
-        repetition_penalty=None,
-    ):
+        prompt: str,
+        max_new_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
+        do_sample: bool | None = None,
+        repetition_penalty: float | None = None,
+    ) -> str:
         """Generate a completion for *prompt*.
 
         All overrides use ``is None`` semantics: passing temperature=0 means
@@ -64,16 +77,27 @@ class TextGenerator:
 
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
         with torch.no_grad():
-            outputs = self.model.generate(**inputs, **generation_kwargs)
+            # generate lives on GenerationMixin in transformers>=4.51
+            generator: GenerationMixin = cast("GenerationMixin", self.model)
+            outputs = generator.generate(
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
+                **generation_kwargs,
+            )
         response = self.tokenizer.decode(
             outputs[0][inputs["input_ids"].shape[1] :], skip_special_tokens=True
         )
         return response
 
-    def generate_batch(self, prompts, **kwargs):
+    def generate_batch(self, prompts: list[str], **kwargs: Any) -> list[str]:
         return [self.generate(p, **kwargs) for p in prompts]
 
 
-def generate(model_path, prompt, adapter_path=None, **kwargs):
+def generate(
+    model_path: str,
+    prompt: str,
+    adapter_path: str | None = None,
+    **kwargs: Any,
+) -> str:
     generator = TextGenerator(model_path, adapter_path)
     return generator.generate(prompt, **kwargs)

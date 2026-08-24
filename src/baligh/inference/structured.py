@@ -2,6 +2,7 @@
 
 import json
 import re
+from typing import Any, cast
 
 from baligh.inference.generator import TextGenerator
 from baligh.utils.logging import get_logger
@@ -11,7 +12,7 @@ logger = get_logger(__name__)
 _FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)```", re.DOTALL)
 
 
-def extract_json_payload(text: str):
+def extract_json_payload(text: str) -> dict | list:
     """Best-effort JSON recovery from a 1.5B-model response.
 
     Tolerates, in order: pure JSON, markdown-fenced JSON, and the first
@@ -44,10 +45,13 @@ def extract_json_payload(text: str):
                         candidates.append(stripped[start : i + 1])
                         break
 
-    last_error = None
+    last_error: Exception | None = None
+    parsed: dict | list
     for candidate in candidates:
         try:
-            return json.loads(candidate)
+            value = json.loads(candidate)
+            parsed = cast("dict | list", value)
+            return parsed
         except json.JSONDecodeError as exc:
             last_error = exc
             continue
@@ -55,10 +59,16 @@ def extract_json_payload(text: str):
 
 
 class StructuredOutput:
-    def __init__(self, model_path, adapter_path=None):
+    def __init__(self, model_path: str, adapter_path: str | None = None) -> None:
         self.generator = TextGenerator(model_path, adapter_path)
 
-    def extract_json(self, prompt, schema=None, max_retries=3, temperature=0.1):
+    def extract_json(
+        self,
+        prompt: str,
+        schema: object | None = None,
+        max_retries: int = 3,
+        temperature: float = 0.1,
+    ) -> dict | list:
         """Prompt the model for JSON and parse robustly.
 
         Retries escalate: each failure appends a corrective instruction so
@@ -87,6 +97,11 @@ class StructuredOutput:
         raise ValueError(f"Failed to extract valid JSON after {max_retries} retries")
 
 
-def extract_json(model_path, prompt, adapter_path=None, **kwargs):
+def extract_json(
+    model_path: str,
+    prompt: str,
+    adapter_path: str | None = None,
+    **kwargs: Any,
+) -> dict | list:
     extractor = StructuredOutput(model_path, adapter_path)
     return extractor.extract_json(prompt, **kwargs)

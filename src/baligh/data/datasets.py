@@ -180,25 +180,25 @@ def get_dataset_config(name: str) -> dict[str, Any]:
     return DATASETS[name]
 
 
-def list_datasets(dataset_type=None):
+def list_datasets(dataset_type: str | None = None) -> dict[str, Any]:
     if dataset_type:
         return {k: v for k, v in DATASETS.items() if v.get("type") == dataset_type}
     return DATASETS
 
 
-def get_cpt_datasets():
+def get_cpt_datasets() -> dict[str, Any]:
     return list_datasets("cpt")
 
 
-def get_sft_datasets():
+def get_sft_datasets() -> dict[str, Any]:
     return list_datasets("sft")
 
 
-def get_eval_datasets():
+def get_eval_datasets() -> dict[str, Any]:
     return list_datasets("eval")
 
 
-def get_islamic_datasets():
+def get_islamic_datasets() -> dict[str, Any]:
     return list_datasets("cpt_islamic")
 
 

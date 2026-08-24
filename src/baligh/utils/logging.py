@@ -4,6 +4,7 @@ import logging
 import sys
 import types
 from pathlib import Path
+from typing import Any
 
 from loguru import logger
 
@@ -83,7 +84,7 @@ class InterceptHandler(logging.Handler):
         logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
-def get_logger(name: str):  # noqa: ARG001 - name kept for API/back-compat
+def get_logger(name: str) -> Any:  # noqa: ARG001 - name kept for API/back-compat
     """Get a logger instance.
 
     Importing this module has no side effects; entry points must call

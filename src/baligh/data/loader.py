@@ -29,7 +29,7 @@ def load_dataset_by_name(
     split: str | None = None,
     streaming: bool | None = None,
     **kwargs: Any,
-):
+) -> Any:
     """Load a dataset from the central registry by name.
 
     Args:

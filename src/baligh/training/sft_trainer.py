@@ -12,6 +12,8 @@ Design (v0.2 rewrite):
   pipeline entirely.
 """
 
+from typing import Any
+
 from transformers import DataCollatorForSeq2Seq, Trainer, TrainingArguments
 
 from baligh.config import get_config, get_model_config, get_sft_config
@@ -31,14 +33,14 @@ logger = get_logger(__name__)
 class SFTTrainer:
     def __init__(
         self,
-        config=None,
-        model=None,
-        tokenizer=None,
-        train_dataset=None,
-        eval_dataset=None,
-        output_dir=None,
-        base_model_path=None,
-    ):
+        config: Any = None,
+        model: Any = None,
+        tokenizer: Any = None,
+        train_dataset: Any = None,
+        eval_dataset: Any = None,
+        output_dir: Any = None,
+        base_model_path: str | None = None,
+    ) -> None:
         self.config = config or get_sft_config()
         self.model_config = get_model_config()
         self.base_config = get_config()
@@ -77,14 +79,14 @@ class SFTTrainer:
         log_memory_stats(prefix="After trainer init")
 
     @classmethod
-    def from_config(cls, config_dict: dict, **kwargs):
+    def from_config(cls, config_dict: dict, **kwargs: Any) -> "SFTTrainer":
         """Create trainer from config dictionary."""
         from baligh.config import SFTConfig as BalighSFTConfig
 
         config = BalighSFTConfig(**config_dict.get("sft", {}))
         return cls(config=config, **kwargs)
 
-    def _setup_model(self):
+    def _setup_model(self) -> Any:
         """Load base + LoRA. K-bit preparation happens once inside
         load_base_model; repeating it post-LoRA double-upcasts norms."""
         return apply_lora(
@@ -97,18 +99,20 @@ class SFTTrainer:
             )
         )
 
-    def _create_training_args(self):
+    def _create_training_args(self) -> TrainingArguments:
         precision = resolve_precision(self.base_config.mixed_precision)
         max_steps = self.config.max_steps
-        num_train_epochs = (
+        configured_epochs = self.config.num_train_epochs
+        num_train_epochs: float | None = (
             None
             if (max_steps is not None and max_steps > 0)
-            else (self.config.num_train_epochs or 1.0)
+            else (configured_epochs if configured_epochs is not None else 1.0)
         )
         return TrainingArguments(
             output_dir=str(self.output_dir),
             max_steps=max_steps,
-            num_train_epochs=num_train_epochs,
+            # HF accepts None (epochs mode); the stub over-restricts.
+            num_train_epochs=num_train_epochs,  # type: ignore[arg-type]
             per_device_train_batch_size=self.config.per_device_train_batch_size,
             gradient_accumulation_steps=self.config.gradient_accumulation_steps,
             learning_rate=self.config.learning_rate,
@@ -143,13 +147,13 @@ class SFTTrainer:
             ddp_find_unused_parameters=False,
         )
 
-    def _create_trainer(self):
+    def _create_trainer(self) -> Trainer:
         # Pads input_ids with pad_token and labels with -100 so masked
         # prompt positions never contribute to loss.
         data_collator = DataCollatorForSeq2Seq(
             tokenizer=self.tokenizer, padding=True, pad_to_multiple_of=8, return_tensors="pt"
         )
-        return Trainer(
+        trainer: Trainer = Trainer(
             model=self.model,
             args=self.training_args,
             train_dataset=self.train_dataset,
@@ -158,8 +162,9 @@ class SFTTrainer:
             processing_class=self.tokenizer,
             callbacks=[LoggingCallback(), MemoryCallback(log_every_n_steps=100)],
         )
+        return trainer
 
-    def train(self, resume_from_checkpoint=None):
+    def train(self, resume_from_checkpoint: str | None = None) -> Any:
         logger.info("Starting SFT training")
         log_memory_stats(prefix="Before training")
 
@@ -174,7 +179,7 @@ class SFTTrainer:
         self.save_model()
         return result
 
-    def save_model(self, path=None):
+    def save_model(self, path: Any = None) -> None:
         save_path = path or self.output_dir / "final"
         save_path.mkdir(parents=True, exist_ok=True)
         logger.info(f"Saving model to {save_path}")
@@ -184,13 +189,13 @@ class SFTTrainer:
 
 
 def train_sft(
-    train_dataset,
-    eval_dataset=None,
-    output_dir=None,
-    resume_from_checkpoint=None,
-    base_model_path=None,
-    config=None,
-):
+    train_dataset: Any,
+    eval_dataset: Any = None,
+    output_dir: Any = None,
+    resume_from_checkpoint: str | None = None,
+    base_model_path: str | None = None,
+    config: dict | None = None,
+) -> Any:
     """Run SFT. ``base_model_path`` points at the CPT output to continue
     from — it is load-bearing, not decorative."""
     if config:

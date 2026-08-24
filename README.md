@@ -189,8 +189,9 @@ response = chat.chat("اكتب لي قصيدة قصيرة عن القدس")
 
 ## Google Colab (Free GPU)
 
-Run the full pipeline on Google Colab with free T4 GPUs (these notebooks use
-Unsloth's fused kernels):
+Run the full pipeline on Google Colab with free T4 GPUs. The notebooks clone
+this repo and drive the same `src.scripts.*` library pipeline used everywhere
+else, so notebook runs and local/Modal runs stay behaviorally identical:
 
 | Notebook | Purpose |
 |----------|---------|

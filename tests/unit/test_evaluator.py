@@ -36,7 +36,10 @@ class TestEvaluator:
         mock_model_obj.generate.return_value = torch.tensor([[1, 2, 3, 4, 5]])
         mock_load.return_value = mock_model_obj
 
-        inputs_dict = {"input_ids": torch.tensor([[1, 2, 3]])}
+        inputs_dict = {
+            "input_ids": torch.tensor([[1, 2, 3]]),
+            "attention_mask": torch.ones(1, 3, dtype=torch.long),
+        }
         mock_tok_obj = MagicMock()
         mock_tok_obj.return_value.to.return_value = inputs_dict
         mock_tok_obj.decode.return_value = "response"
@@ -59,7 +62,10 @@ class TestEvaluator:
         mock_model_obj.generate.return_value = torch.tensor([[1, 2, 3]])
         mock_load.return_value = mock_model_obj
 
-        inputs_dict = {"input_ids": torch.tensor([[1, 2]])}
+        inputs_dict = {
+            "input_ids": torch.tensor([[1, 2]]),
+            "attention_mask": torch.ones(1, 2, dtype=torch.long),
+        }
         mock_tok_obj = MagicMock()
         mock_tok_obj.return_value.to.return_value = inputs_dict
         mock_tok_obj.decode.return_value = "x"

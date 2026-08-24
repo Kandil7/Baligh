@@ -8,6 +8,8 @@ Stack: transformers ``Trainer`` + PEFT QLoRA. Unsloth is NOT used on this
 code path (it remains available in the Colab notebooks).
 """
 
+from typing import Any
+
 from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments
 
 from baligh.config import get_config, get_cpt_config, get_model_config
@@ -23,7 +25,9 @@ from baligh.utils.seeding import set_seed
 logger = get_logger(__name__)
 
 
-def resolve_reporters(wandb_project=None, wandb_api_key=None) -> list[str]:
+def resolve_reporters(
+    wandb_project: str | None = None, wandb_api_key: str | None = None
+) -> list[str]:
     """Pick reporting backends that cannot block training.
 
     wandb without an API key (and not explicitly offline) hangs on an
@@ -45,13 +49,13 @@ def resolve_reporters(wandb_project=None, wandb_api_key=None) -> list[str]:
 class CPTTrainer:
     def __init__(
         self,
-        config=None,
-        model=None,
-        tokenizer=None,
-        train_dataset=None,
-        eval_dataset=None,
-        output_dir=None,
-    ):
+        config: Any = None,
+        model: Any = None,
+        tokenizer: Any = None,
+        train_dataset: Any = None,
+        eval_dataset: Any = None,
+        output_dir: Any = None,
+    ) -> None:
         self.config = config or get_cpt_config()
         self.model_config = get_model_config()
         self.base_config = get_config()
@@ -85,14 +89,14 @@ class CPTTrainer:
         log_memory_stats(prefix="After trainer init")
 
     @classmethod
-    def from_config(cls, config_dict: dict, **kwargs):
+    def from_config(cls, config_dict: dict, **kwargs: Any) -> "CPTTrainer":
         """Create trainer from config dictionary."""
         from baligh.config import CPTConfig
 
         config = CPTConfig(**config_dict.get("cpt", {}))
         return cls(config=config, **kwargs)
 
-    def _setup_model(self):
+    def _setup_model(self) -> Any:
         """Load base + LoRA. K-bit preparation happens once, inside
         load_base_model — repeating it post-LoRA double-upcasts norms."""
         return apply_lora(
@@ -105,21 +109,23 @@ class CPTTrainer:
             )
         )
 
-    def _create_training_args(self):
+    def _create_training_args(self) -> TrainingArguments:
         precision = resolve_precision(self.base_config.mixed_precision)
         # max_steps > 0 takes precedence over epochs in HF Trainer; passing
         # both is misleading. Only forward the one that will actually drive
         # the schedule.
         max_steps = self.config.max_steps
-        num_train_epochs = (
+        configured_epochs = self.config.num_train_epochs
+        num_train_epochs: float | None = (
             None
             if (max_steps is not None and max_steps > 0)
-            else (self.config.num_train_epochs or 1.0)
+            else (configured_epochs if configured_epochs is not None else 1.0)
         )
         return TrainingArguments(
             output_dir=str(self.output_dir),
             max_steps=max_steps,
-            num_train_epochs=num_train_epochs,
+            # HF accepts None (epochs mode); the stub over-restricts.
+            num_train_epochs=num_train_epochs,  # type: ignore[arg-type]
             per_device_train_batch_size=self.config.per_device_train_batch_size,
             gradient_accumulation_steps=self.config.gradient_accumulation_steps,
             learning_rate=self.config.learning_rate,
@@ -155,10 +161,10 @@ class CPTTrainer:
             ddp_find_unused_parameters=False,
         )
 
-    def _create_trainer(self):
+    def _create_trainer(self) -> Trainer:
         data_collator = DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=False)
 
-        return Trainer(
+        trainer: Trainer = Trainer(
             model=self.model,
             args=self.training_args,
             train_dataset=self.train_dataset,
@@ -167,8 +173,9 @@ class CPTTrainer:
             processing_class=self.tokenizer,
             callbacks=[LoggingCallback(), MemoryCallback(log_every_n_steps=100)],
         )
+        return trainer
 
-    def train(self, resume_from_checkpoint=None):
+    def train(self, resume_from_checkpoint: str | None = None) -> Any:
         logger.info("Starting CPT training")
         log_memory_stats(prefix="Before training")
 
@@ -183,7 +190,7 @@ class CPTTrainer:
         self.save_model()
         return result
 
-    def save_model(self, path=None):
+    def save_model(self, path: Any = None) -> None:
         save_path = path or self.output_dir / "final"
         save_path.mkdir(parents=True, exist_ok=True)
         logger.info(f"Saving model to {save_path}")
@@ -193,12 +200,12 @@ class CPTTrainer:
 
 
 def train_cpt(
-    train_dataset,
-    eval_dataset=None,
-    output_dir=None,
-    resume_from_checkpoint=None,
-    config=None,
-):
+    train_dataset: Any,
+    eval_dataset: Any = None,
+    output_dir: Any = None,
+    resume_from_checkpoint: str | None = None,
+    config: dict | None = None,
+) -> Any:
     if config:
         trainer = CPTTrainer.from_config(
             config,

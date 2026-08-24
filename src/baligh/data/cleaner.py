@@ -117,12 +117,12 @@ def punct_ratio(count: int, total: int) -> float:
 class CleaningPipeline:
     def __init__(
         self,
-        steps=None,
-        language_filter="arabic",
-        quality_filter=True,
-        min_length=50,
-        max_length=100000,
-    ):
+        steps: list | None = None,
+        language_filter: str | None = "arabic",
+        quality_filter: bool = True,
+        min_length: int = 50,
+        max_length: int = 100000,
+    ) -> None:
         self.steps = steps or [
             remove_html,
             remove_urls,

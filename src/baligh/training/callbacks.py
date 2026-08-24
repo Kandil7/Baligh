@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from transformers import TrainerCallback, TrainingArguments, TrainerState, TrainerControl
+from transformers import TrainerCallback, TrainerControl, TrainerState, TrainingArguments
 
 from baligh.utils.logging import get_logger
 from baligh.utils.memory import clear_memory, log_memory_stats

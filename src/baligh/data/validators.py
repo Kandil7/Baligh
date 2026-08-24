@@ -1,10 +1,10 @@
 """Data validation for Baligh-1.7B v0."""
 
+from typing import Any
+
 from baligh.utils.logging import get_logger
 
 logger = get_logger(__name__)
-
-from typing import Any
 
 REQUIRED_CPT_COLUMNS: list[str] = ["text"]
 REQUIRED_SFT_COLUMNS = ["instruction", "output"]

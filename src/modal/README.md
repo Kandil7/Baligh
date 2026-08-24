@@ -14,6 +14,9 @@ modal setup
 # Set secrets
 modal secret create huggingface-token HF_TOKEN=hf_xxxxx
 modal secret create wandb-token WANDB_API_KEY=xxx  # optional
+
+# API key for the web endpoints (required before `modal deploy`)
+modal secret create baligh-api-key BALIGH_API_KEY=$(python -c "import secrets;print(secrets.token_urlsafe(32))")
 ```
 
 ## Training
@@ -44,11 +47,12 @@ modal run src/modal/train.py --stage cpt --resume
 ### SFT Training
 
 ```bash
-# Initial SFT (5K steps)
+# Continue from CPT (--base-model is load-bearing)
 modal run src/modal/train.py --stage sft --base-model /vol/training/cpt/final
 
-# Full SFT (10K steps)
-modal run src/modal/train.py --stage sft --base-model /vol/training/cpt/final --config configs/sft/sft-stage2.yaml
+# Full SFT with explicit config
+modal run src/modal/train.py --stage sft \
+  --base-model /vol/training/cpt/final --config configs/sft/sft-stage2.yaml
 
 # Auto-resume
 modal run src/modal/train.py --stage sft --resume
@@ -64,29 +68,31 @@ modal run src/modal/train.py::list_checkpoints --stage sft
 
 ## Inference
 
+Endpoints are **authenticated**: every request needs your
+`BALIGH_API_KEY` value in the `x-api-key` header. Unauthenticated GPU
+inference is cost abuse waiting to happen.
+
 ### CLI Inference
 
 ```bash
-# Quick inference
-modal run src/modal/infer.py --prompt "ما هي عاصمة مصر؟"
-
-# With custom params
-modal run src/modal/infer.py --prompt "اكتب قصة قصيرة" --max-new-tokens 1024 --temperature 0.8
+modal run src/modal/serve.py --prompt "ما هي عاصمة مصر؟"
 ```
 
-### Web Endpoint
+### Web Endpoints (POST + x-api-key)
 
 ```bash
-# Deploy inference server
 modal deploy src/modal/serve.py
 
-# Test locally
-modal serve src/modal/serve.py
-```
+curl -X POST https://<your-workspace>--baligh-1-7b-generate.modal.run/ \
+  -H "x-api-key: $BALIGH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "ما هي عاصمة مصر؟", "max_new_tokens": 512}'
 
-Then access:
-- `https://your-username--baligh-generate.modal.run/?prompt=ما+هي+عاصمة+مصر؟`
-- `https://your-username--baligh-chat.modal.run/?message=مرحبا`
+curl -X POST https://<your-workspace>--baligh-1-7b-chat.modal.run/ \
+  -H "x-api-key: $BALIGH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "مرحبا", "history": []}'
+```
 
 ## GPU Options
 
@@ -95,10 +101,10 @@ Then access:
 | T4 | 16GB | ~$0.60 | Quick tests, inference |
 | A10G | 24GB | ~$1.10 | CPT/SFT training |
 | A100 40GB | 40GB | ~$3.40 | Full training |
-| A100 80GB | 80GB | ~$4.90 | Large batch training |
 | H100 | 80GB | ~$7.50 | Fastest training |
 
-Change GPU in `app.py` or pass `--gpu a100` to Modal commands.
+Change GPU in `app.py`. Precision and attention adapt automatically:
+A10G/A100 get bf16 + flash_attention_2, T4 gets fp16 + sdpa.
 
 ## Costs Estimate
 
@@ -131,45 +137,38 @@ modal volume delete baligh-training
 Modal Cloud
 ├── Persistent Volume (baligh-training)
 │   ├── data/train_ready/    # Prepared datasets
-│   ├── training/cpt/        # CPT checkpoints + metadata
-│   ├── training/sft/        # SFT checkpoints + metadata
+│   ├── training/cpt/        # CPT checkpoints (full-state, resumable)
+│   ├── training/sft/        # SFT checkpoints
 │   ├── release/             # Merged + quantized models
 │   └── .cache/              # HuggingFace cache
 │
 ├── GPU Functions
-│   ├── train()              # CPT/SFT training
+│   ├── train()              # CPT/SFT training (subprocess, list args)
 │   ├── prepare_data()       # Data preparation
 │   ├── infer_cli()          # CLI inference
-│   ├── generate()           # Web endpoint (GET)
-│   └── chat()               # Web endpoint (GET)
+│   ├── generate()           # Web endpoint (POST, x-api-key)
+│   └── chat_endpoint()      # Web endpoint (POST, x-api-key)
 │
 └── Secrets
     ├── huggingface-token    # HF Hub access
-    └── wandb-token          # W&B logging (optional)
+    ├── wandb-token          # W&B logging (optional)
+    └── baligh-api-key       # Web endpoint auth (required for deploy)
 ```
 
 ## Troubleshooting
 
 ### Out of Memory
-```bash
-# Use larger GPU
-modal run src/modal/train.py --stage cpt --gpu a100
-
-# Or reduce batch size in config
-```
+Reduce batch size in the stage config, or move to a larger GPU class.
 
 ### Slow Downloads
-```bash
-# Data is cached in volume — first run is slow, subsequent runs are fast
-# Force re-download:
-modal volume rm baligh-training /vol/data
-```
+Data is cached in the volume — first run is slow, subsequent runs are fast.
 
 ### Checkpoint Not Found
 ```bash
-# List available checkpoints
 modal run src/modal/train.py::list_checkpoints --stage cpt
-
-# Or check volume
 modal volume ls baligh-training /vol/training/cpt/
 ```
+
+### 401 from web endpoints
+The `baligh-api-key` secret is missing on the server or the `x-api-key`
+header does not match. Recreate the secret and redeploy.

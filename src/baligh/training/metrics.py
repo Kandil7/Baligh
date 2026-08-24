@@ -1,8 +1,8 @@
 """Training metrics for Baligh-1.7B v0."""
 
-import torch
-
 from typing import Any
+
+import torch
 
 from baligh.utils.logging import get_logger
 
@@ -27,7 +27,7 @@ def compute_metrics(eval_pred: tuple[Any, Any]) -> dict[str, float]:
     return {"eval_loss": loss.item(), "perplexity": perplexity}
 
 
-def compute_perplexity(model, dataloader, device):
+def compute_perplexity(model: Any, dataloader: Any, device: Any) -> float:
     """Token-weighted perplexity over a dataloader.
 
     Loss is accumulated per LABELLED token (labels != -100), not per

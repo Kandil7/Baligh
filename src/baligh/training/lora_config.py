@@ -4,6 +4,8 @@ Single construction point for PEFT/BNB configs. ``baligh.models.loader``
 delegates here; do not build LoraConfig/BitsAndBytesConfig inline elsewhere.
 """
 
+from typing import Any
+
 from peft import LoraConfig, TaskType
 
 from baligh.config import get_lora_config, get_model_config
@@ -13,7 +15,7 @@ from baligh.utils.logging import get_logger
 logger = get_logger(__name__)
 
 
-def create_lora_config(custom_config=None) -> LoraConfig:
+def create_lora_config(custom_config: Any = None) -> LoraConfig:
     """Build a PEFT LoraConfig from baligh's LoRAConfig defaults."""
     cfg = custom_config or get_lora_config()
     return LoraConfig(
@@ -30,7 +32,7 @@ def create_lora_config(custom_config=None) -> LoraConfig:
     )
 
 
-def create_quantization_config(compute_dtype=None):
+def create_quantization_config(compute_dtype: Any = None) -> Any:
     """Build a BitsAndBytesConfig from ModelConfig defaults.
 
     Honors the explicit ``bnb_4bit_compute_dtype`` setting, but guards

@@ -121,7 +121,7 @@ def reduce_dict(input_dict: dict, average: bool = True) -> dict:
         if average:
             stacked /= world_size
 
-        return {k: v for k, v in zip(names, stacked.tolist(), strict=False)}
+        return dict(zip(names, stacked.tolist(), strict=False))
 
 
 def gather_object(obj: object) -> list:

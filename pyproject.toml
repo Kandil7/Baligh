@@ -180,8 +180,6 @@ module = [
     "datasketch.*",
     "autoawq.*",
     "auto_gptq.*",
-    "unsloth.*",
-    "rouge_score.*",
     "sacrebleu.*",
 ]
 ignore_missing_imports = true
@@ -192,6 +190,12 @@ ignore_missing_imports = true
 module = ["numpy.*"]
 follow_imports = "skip"
 ignore_errors = true
+
+[[tool.mypy.overrides]]
+# CLI entry points: argparse glue, annotations are low-value there.
+module = ["scripts.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -26,6 +26,7 @@ import random
 import shutil
 import signal
 import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -78,8 +79,8 @@ class CheckpointManager:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.keep_last_n = keep_last_n
         self._original_sigint: Any = None
-        self._trainer = None
-        self._save_callback = None
+        self._trainer: Any = None
+        self._save_callback: Callable[[], None] | None = None
         self._saving = False
 
     # ------------------------------------------------------------- saving
@@ -307,12 +308,16 @@ class CheckpointManager:
 
     # ------------------------------------------------------------ signals
 
-    def install_signal_handler(self, trainer: Any, save_fn=None):
+    def install_signal_handler(
+        self,
+        trainer: Any,
+        save_fn: Callable[[], None] | None = None,
+    ) -> None:
         """Install a SIGINT handler that saves a resumable checkpoint."""
         self._trainer = trainer
         self._save_callback = save_fn
 
-        def handler(_signum, _frame):
+        def handler(_signum: int, _frame: Any) -> None:
             if self._saving:
                 # Second Ctrl+C while first save is mid-flight: do NOT nest
                 # saves into the same partially-written directory.
@@ -345,7 +350,7 @@ class CheckpointManager:
         self._original_sigint = signal.getsignal(signal.SIGINT)
         signal.signal(signal.SIGINT, handler)
 
-    def uninstall_signal_handler(self):
+    def uninstall_signal_handler(self) -> None:
         """Restore the original SIGINT handler."""
         if self._original_sigint is not None:
             signal.signal(signal.SIGINT, self._original_sigint)

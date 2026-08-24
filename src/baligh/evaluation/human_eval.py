@@ -42,7 +42,7 @@ class HumanEvaluation:
 
 
 class HumanEvaluator:
-    def __init__(self, rubric=None):
+    def __init__(self, rubric: "EvaluationRubric | None" = None) -> None:
         self.rubric = rubric or EvaluationRubric.default()
         self.evaluations: list[HumanEvaluation] = []
 

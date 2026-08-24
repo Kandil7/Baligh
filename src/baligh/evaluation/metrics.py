@@ -16,6 +16,7 @@ semantic equality.
 
 import re
 from collections import Counter
+from typing import Any
 
 from baligh.utils.logging import get_logger
 
@@ -93,7 +94,7 @@ def _lcs_f1(pred_tokens: list[str], ref_tokens: list[str]) -> float:
     return 2 * precision * recall / (precision + recall)
 
 
-def compute_rouge(predictions, references) -> dict[str, float]:
+def compute_rouge(predictions: list[str], references: list[str]) -> dict[str, float]:
     """ROUGE-1/2/L F1 over Arabic-aware tokens. Length-mismatched inputs raise."""
     if len(predictions) != len(references):
         raise ValueError(
@@ -109,7 +110,7 @@ def compute_rouge(predictions, references) -> dict[str, float]:
     return {k: float(sum(v) / len(v)) if v else 0.0 for k, v in scores.items()}
 
 
-def compute_bleu(predictions, references) -> float:
+def compute_bleu(predictions: list[str], references: list[str]) -> float:
     """Corpus BLEU with sacrebleu's Arabic-aware tokenizer."""
     from sacrebleu import corpus_bleu
 
@@ -118,7 +119,9 @@ def compute_bleu(predictions, references) -> float:
     return bleu.score
 
 
-def compute_bert_score(predictions, references, lang="ar"):
+def compute_bert_score(
+    predictions: list[str], references: list[str], lang: str = "ar"
+) -> dict[str, float]:
     """BERTScore (multilingual encoder handles Arabic natively)."""
     from bert_score import score as bert_score_fn
 
@@ -130,7 +133,7 @@ def compute_bert_score(predictions, references, lang="ar"):
     }
 
 
-def compute_exact_match(predictions, references) -> float:
+def compute_exact_match(predictions: list[str], references: list[str]) -> float:
     """Normalized exact match (see normalize_for_match)."""
     if not predictions:
         return 0.0
@@ -142,7 +145,7 @@ def compute_exact_match(predictions, references) -> float:
     return matches / len(predictions)
 
 
-def compute_perplexity(model, dataloader, device) -> float:
+def compute_perplexity(model: Any, dataloader: Any, device: Any) -> float:
     """Token-weighted perplexity (delegates to the shared implementation)."""
     from baligh.training.metrics import compute_perplexity as _impl
 
