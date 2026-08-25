@@ -309,8 +309,58 @@ def get_sft_config() -> SFTConfig:
     return SFTConfig()
 
 
+@dataclass(frozen=True, slots=True)
+class DPOConfig:
+    """Direct Preference Optimization configuration."""
+
+    # Data
+    max_length: int = 1024
+    max_prompt_length: int = 512
+
+    # Training
+    max_steps: int = 1000
+    num_train_epochs: float | None = None
+    per_device_train_batch_size: int = 1
+    gradient_accumulation_steps: int = 8
+    learning_rate: float = 5e-5
+    weight_decay: float = 0.01
+    warmup_steps: int = 100
+    lr_scheduler_type: Literal["linear", "cosine", "constant"] = "cosine"
+    max_grad_norm: float = 1.0
+
+    # Optimization
+    optim: str = "paged_adamw_8bit"
+    adam_beta1: float = 0.9
+    adam_beta2: float = 0.95
+    adam_epsilon: float = 1e-8
+
+    # DPO specific
+    beta: float = 0.1
+    loss_type: Literal["sigmoid", "hinge", "ipo"] = "sigmoid"
+    label_smoothing: float = 0.0
+    reference_free: bool = False
+
+    # Logging & saving
+    logging_steps: int = 10
+    save_steps: int = 100
+    save_total_limit: int = 3
+    eval_steps: int = 100
+    eval_strategy: Literal["no", "steps", "epoch"] = "steps"
+    load_best_model_at_end: bool = True
+    metric_for_best_model: str = "eval_loss"
+    greater_is_better: bool = False
+
+    # Data loading
+    dataloader_num_workers: int = 4
+    dataloader_pin_memory: bool = True
+
+
 def get_eval_config() -> EvalConfig:
     return EvalConfig()
+
+
+def get_dpo_config() -> DPOConfig:
+    return DPOConfig()
 
 
 def get_quantization_config() -> QuantizationConfig:

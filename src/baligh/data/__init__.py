@@ -24,6 +24,12 @@ from baligh.data.mixer import (
     mix_cpt_datasets,
     mix_sft_datasets,
 )
+from baligh.data.preference import (
+    get_preference_stats,
+    load_preference_data,
+    normalize_preference_schema,
+    validate_preference_example,
+)
 from baligh.data.validators import (
     check_dataset_schema,
     get_dataset_stats,
@@ -63,4 +69,8 @@ __all__ = [
     "load_eval_datasets",
     "standardize_cpt_dataset",
     "standardize_sft_dataset",
+    "load_preference_data",
+    "normalize_preference_schema",
+    "validate_preference_example",
+    "get_preference_stats",
 ]

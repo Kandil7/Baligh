@@ -28,4 +28,8 @@ def __getattr__(name: str) -> Any:  # PEP 562 lazy exports
         from baligh.training.sft_trainer import SFTTrainer, train_sft
 
         return {"SFTTrainer": SFTTrainer, "train_sft": train_sft}[name]
+    if name in ("DPOTrainer", "train_dpo"):
+        from baligh.training.dpo_trainer import DPOTrainer, train_dpo
+
+        return {"DPOTrainer": DPOTrainer, "train_dpo": train_dpo}[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
