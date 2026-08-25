@@ -1,7 +1,7 @@
 ---
 description: Cache raw registry datasets to D:\AI\Datasets\baligh\ as JSONL so pipeline reruns never re-download web-scale corpora.
 agent: arabic-data-engineer
-model: ollama/qwen2.5-coder:7b
+model: ollama/qwen3.5:9b
 ---
 
 # Goal

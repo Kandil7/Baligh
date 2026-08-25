@@ -1,7 +1,7 @@
 ---
 description: Create preference data pairs (chosen/rejected) for DPO alignment from the SFT dataset using LLM generation and automated quality filtering.
 agent: arabic-data-engineer
-model: ollama/qwen2.5-coder:7b
+model: ollama/qwen3.5:9b
 ---
 
 # Goal

@@ -1,7 +1,7 @@
 ---
 description: Merge LoRA adapters, quantize to GGUF/AWQ, and export the final model.
 agent: builder
-model: ollama/qwen2.5-coder:7b
+model: ollama/qwen3.5:9b
 ---
 
 # Goal

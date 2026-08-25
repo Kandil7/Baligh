@@ -1,7 +1,7 @@
 ---
 description: Run Supervised Fine-Tuning (SFT) on the CPT checkpoint using the prepared SFT data.
 agent: ai-engineer
-model: ollama/qwen2.5-coder:7b
+model: ollama/qwen3.5:9b
 ---
 
 # Goal

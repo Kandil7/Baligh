@@ -1,7 +1,7 @@
 ---
 description: Run DPO alignment on the SFT checkpoint using the prepared preference data.
 agent: ai-engineer
-model: ollama/qwen2.5-coder:7b
+model: ollama/qwen3.5:9b
 ---
 
 # Goal
