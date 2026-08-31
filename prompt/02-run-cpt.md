@@ -1,7 +1,7 @@
 ---
 description: Run Continued Pretraining (CPT) on Qwen3-1.7B-Base using the prepared CPT data.
 agent: ai-engineer
-model: ollama/qwen3.5:9b
+model: ollama/qwen3.5:9b-32k
 ---
 
 # Goal
