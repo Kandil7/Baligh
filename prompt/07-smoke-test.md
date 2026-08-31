@@ -1,7 +1,7 @@
 ---
 description: Quick smoke test — run a 10-step training loop across CPT, SFT, and DPO to verify the full pipeline works end-to-end.
 agent: builder
-model: ollama/qwen3.5:9b
+model: ollama/qwen3.5:9b-32k
 ---
 
 # Goal
