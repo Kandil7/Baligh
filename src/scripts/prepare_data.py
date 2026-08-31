@@ -216,12 +216,21 @@ class DataPreparator:
             texts = batch[text_column]
             return {text_column: pipeline.clean_batch(texts)}
 
-        return dataset.map(
-            clean_batch,
-            batched=True,
-            num_proc=None if self.config.streaming else self.config.num_proc,
-            desc=f"Cleaning {text_column}",
-        )
+        from datasets import IterableDataset
+
+        kwargs: dict = {"batched": True}
+        if isinstance(dataset, IterableDataset):
+            # IterableDataset.map() supports neither num_proc nor desc.
+            pass
+        else:
+            kwargs["num_proc"] = self.config.num_proc
+            kwargs["desc"] = f"Cleaning {text_column}"
+        # The cleaning pipeline is row-dropping (it removes empty/invalid
+        # texts), so any sibling column would go out of sync with `text`.
+        cols = dataset.column_names
+        if cols:
+            kwargs["remove_columns"] = [c for c in cols if c != text_column]
+        return dataset.map(clean_batch, **kwargs)
 
     def _clean_sft_dataset(self, dataset: Dataset) -> Dataset:
         """Apply cleaning to the canonical SFT columns, preserving rows.
