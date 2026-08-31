@@ -1,7 +1,7 @@
 ---
 description: Prepare all CPT and SFT training data in one orchestrated pipeline — download, clean, deduplicate, mix, format, split.
 agent: builder
-model: ollama/qwen3.5:9b
+model: ollama/qwen3.5:9b-32k
 ---
 
 # Goal
