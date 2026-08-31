@@ -1,7 +1,7 @@
 ---
 description: Evaluate the final model (after DPO) on Arabic benchmarks and produce an evaluation report.
 agent: model-evaluator
-model: ollama/qwen3.5:9b
+model: ollama/qwen3.5:9b-32k
 ---
 
 # Goal
