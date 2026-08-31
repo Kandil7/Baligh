@@ -1,7 +1,7 @@
 ---
 description: Merge LoRA adapters, quantize to GGUF/AWQ, generate model card, optionally push to HF.
 agent: builder
-model: ollama/qwen3.5:9b
+model: ollama/qwen3.5:9b-32k
 ---
 
 Load skills: `model-compression`, `huggingface`.
