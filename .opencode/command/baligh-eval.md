@@ -1,7 +1,7 @@
 ---
 description: Evaluate the aligned model on MMLU-Arabic/CIDAR/Islamic QA and build the comparison report.
 agent: model-evaluator
-model: ollama/qwen3.5:9b
+model: ollama/qwen3.5:9b-32k
 ---
 
 Load skills: `evaluation`, `arabic-nlp`.
