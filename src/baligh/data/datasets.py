@@ -35,6 +35,7 @@ DATASETS: dict[str, dict[str, Any]] = {
     },
     "arabic_pile": {
         "path": "premio-ai/TheArabicPile_Dialects",
+        "name": "dedup",
         "split": "train",
         "streaming": True,
         "text_column": "text",
@@ -44,7 +45,8 @@ DATASETS: dict[str, dict[str, Any]] = {
         "type": "cpt",
     },
     "oscar_ar": {
-        "path": "oscar-corpus/oscar_ar",
+        "path": "wikimedia/wikipedia",
+        "name": "20231101.ar",
         "split": "train",
         "streaming": True,
         "text_column": "text",
@@ -54,7 +56,7 @@ DATASETS: dict[str, dict[str, Any]] = {
         "type": "cpt",
     },
     "mc4_ar": {
-        "path": "google/mc4",
+        "path": "allenai/c4",
         "name": "ar",
         "split": "train",
         "streaming": True,
@@ -238,7 +240,13 @@ def standardize_cpt_dataset(dataset: Any, name: str) -> Any:
         """Project a raw row onto the canonical text column."""
         return {"text": example.get(text_column) or ""}
 
-    return dataset.map(_to_text, desc=f"Standardize CPT: {name}")
+    from datasets import IterableDataset
+
+    kwargs: dict[str, Any] = {}
+    if not isinstance(dataset, IterableDataset):
+        # IterableDataset.map() does not support the `desc` argument.
+        kwargs["desc"] = f"Standardize CPT: {name}"
+    return dataset.map(_to_text, **kwargs)
 
 
 def standardize_sft_dataset(dataset: Any, name: str) -> Any:
