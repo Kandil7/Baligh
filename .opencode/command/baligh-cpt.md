@@ -1,7 +1,7 @@
 ---
 description: Run Continued Pretraining on Qwen3-1.7B-Base (stage1 proof, then stage2 full).
 agent: ai-engineer
-model: ollama/qwen3.5:9b
+model: ollama/qwen3.5:9b-32k
 ---
 
 Load skills: `qlora`, `cuda-pytorch`.
