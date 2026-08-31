@@ -1,7 +1,7 @@
 ---
 description: Run SFT on the CPT checkpoint (stage1, then stage2). --base-model is load-bearing.
 agent: ai-engineer
-model: ollama/qwen3.5:9b
+model: ollama/qwen3.5:9b-32k
 ---
 
 Load skill: `qlora`.
