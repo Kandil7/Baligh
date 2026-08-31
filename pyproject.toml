@@ -251,3 +251,14 @@ exclude_lines = [
 [build-system]
 requires = ["setuptools>=70.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+# RTX 5000 (sm_75) needs the CUDA build of torch; PyPI's default wheel is
+# CPU-only on Windows. Pin torch to the cu128 index explicitly so plain
+# `uv sync` never silently downgrades to the CPU build again.
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu128" }]
