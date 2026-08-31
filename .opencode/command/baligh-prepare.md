@@ -1,7 +1,7 @@
 ---
 description: Prepare all CPT and SFT training data via prepare_data.py — download, clean, dedup, mix, format, split.
 agent: builder
-model: ollama/qwen3.5:9b
+model: ollama/qwen3.5:9b-32k
 ---
 
 Load skills: `data-pipeline`, `arabic-nlp`.
