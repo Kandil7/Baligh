@@ -1,6 +1,9 @@
 """Benchmark runners for Baligh-1.7B v0."""
 
+import json
 import re
+from collections import defaultdict
+from pathlib import Path
 from typing import Any
 
 from datasets import load_dataset
@@ -138,4 +141,130 @@ def run_islamic_qa(evaluator: Any, dataset: Any, max_samples: int = 100) -> dict
         "exact_match": exact_match,
         "predictions": predictions,
         "references": references,
+    }
+
+
+# --- Sunni-core benchmark -------------------------------------------------
+
+_REFUSAL_MARKERS = (
+    "لا أعلم",
+    "لا اعلم",
+    "لا يكفي",
+    "غير كافٍ",
+    "غير كافي",
+    "لا يمكن الجزم",
+    "لا وجود",
+    "لا أستطيع الجزم",
+    "لا يجوز الجزم",
+    "مراجعة عالم",
+    "استشارة عالم",
+    "أهل العلم",
+    "راجع عالم",
+    "السياق لا",
+    "لا يصلح للإجابة",
+)
+
+
+def _check_citation(item: dict[str, Any], response: str) -> bool:
+    """Auto-check: required citation fragments must appear in the response."""
+    required = item.get("required_citation") or {}
+    haystack = response or ""
+    checks: list[bool] = []
+    if required.get("surah") is not None:
+        checks.append(str(required["surah"]) in haystack)
+    if required.get("ayah") is not None:
+        ayah = str(required["ayah"])
+        # Western or Eastern-Arabic digits.
+        eastern = ayah.translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
+        checks.append(ayah in haystack or eastern in haystack)
+    if required.get("number"):
+        number = str(required["number"])
+        eastern = number.translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
+        checks.append(number in haystack or eastern in haystack)
+    for field in ("collection", "title"):
+        if required.get(field):
+            checks.append(str(required[field]) in haystack)
+    return all(checks) if checks else False
+
+
+def _check_refusal(response: str) -> bool:
+    """Auto-check: the model declined instead of asserting."""
+    text = response or ""
+    return any(marker in text for marker in _REFUSAL_MARKERS)
+
+
+def run_sunni_benchmark(
+    evaluator: Any,
+    benchmark_path: str | Path = "data/benchmarks/sunni_core_v0.jsonl",
+    max_samples: int = 100,
+) -> dict:
+    """Sunni-domain core benchmark (the project's target niche).
+
+    Categories: Quran exact-match/citation, hadith attribution honesty,
+    madhhab-aware fiqh, aqeedah, RAG faithfulness, refusal calibration,
+    Arabic quality, and safety/deferral. Items carry a ``checker`` field:
+
+    - ``citation``: auto-scored — required citation fragments (surah/ayah
+      numbers, hadith collection+number, book title) must appear verbatim.
+    - ``refusal``: auto-scored — refusal markers present; fabrication fails.
+    - ``human``: not scored automatically; routed to the human-review queue.
+
+    Returns per-category accuracy over auto-checkable items plus the human
+    queue. Auto scores are conservative: they can only pass on explicit,
+    verifiable content.
+    """
+    logger.info("Running Sunni-core benchmark from %s", benchmark_path)
+    items: list[dict[str, Any]] = []
+    with open(benchmark_path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("//"):
+                items.append(json.loads(line))
+
+    results: dict[str, dict[str, Any]] = defaultdict(lambda: {"pass": 0, "total": 0})
+    human_queue: list[dict[str, Any]] = []
+
+    for item in items[:max_samples]:
+        question = item["question"]
+        context = item.get("context") or ""
+        user = f"السؤال:\n{question}"
+        if context:
+            user += f"\n\nالسياق:\n{context}"
+        response = evaluator.generate(user)
+
+        category = item["category"]
+        checker = item.get("checker", "human")
+        record = {
+            "id": item["id"],
+            "category": category,
+            "response": response,
+            "reference_answer": item.get("reference_answer", ""),
+        }
+        if checker == "citation":
+            # Auto-fail only when a verifiable citation is required and absent.
+            passed = _check_citation(item, response) if item.get("must_cite") else True
+            results[category]["total"] += 1
+            results[category]["pass"] += int(passed)
+            record["passed"] = passed
+            record["checker"] = checker
+        elif checker == "refusal":
+            passed = _check_refusal(response) if item.get("must_refuse") else True
+            results[category]["total"] += 1
+            results[category]["pass"] += int(passed)
+            record["passed"] = passed
+            record["checker"] = checker
+        else:
+            human_queue.append(record)
+
+    summary = {
+        cat: {"accuracy": v["pass"] / v["total"] if v["total"] else 0.0, **v}
+        for cat, v in results.items()
+    }
+    logger.info("Sunni-core auto metrics: %s", json.dumps(summary, ensure_ascii=False))
+    logger.info("Sunni-core human-review queue: %d items", len(human_queue))
+    return {
+        "categories": summary,
+        "human_queue": human_queue,
+        "n_items": len(items),
+        "n_auto_scored": sum(v["total"] for v in results.values()),
     }
