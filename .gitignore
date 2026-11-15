@@ -31,8 +31,11 @@ dist/
 data/raw/
 data/clean/
 data/train_ready/
+data/dryrun_*/
+data/smoke_test/
 training/cpt/
 training/sft/
+training/smoke_*/
 training/logs/
 eval/results/
 eval/reports/

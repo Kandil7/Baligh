@@ -1,16 +1,14 @@
 """10-step smoke test for Baligh-1.7B CPT+SFT pipeline on RTX 5000."""
 
-import json
 import os
 import tempfile
-from pathlib import Path
 
-os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "0"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 MODEL_ID = "unsloth/Qwen3-1.7B-Base"
 STEPS = 10
-MAX_SEQ_LEN = 512
+MAX_SEQ_LEN = 256
 
 
 def main():
@@ -18,30 +16,23 @@ def main():
     from datasets import Dataset
     from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
 
-    print(f"GPU: {torch.cuda.get_device_name(0)}")
-    free_gb = torch.cuda.mem_get_info()[0] / 1e9
-    print(f"Free VRAM: {free_gb:.1f} GB")
+    torch.cuda.mem_get_info()[0] / 1e9
 
     # --- Load tokenizer ---
-    print(f"\n[1/5] Loading tokenizer: {MODEL_ID}")
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    print(f"  Vocab: {len(tokenizer)}, Pad: {tokenizer.pad_token}")
 
     # --- Load model ---
-    print(f"\n[2/5] Loading model: {MODEL_ID}")
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_ID,
-        torch_dtype=torch.bfloat16,
+        torch_dtype=torch.float32,
         device_map="auto",
         trust_remote_code=True,
     )
-    free_after = torch.cuda.mem_get_info()[0] / 1e9
-    print(f"  Loaded. Free VRAM after load: {free_after:.1f} GB")
+    torch.cuda.mem_get_info()[0] / 1e9
 
     # --- Create tiny dummy dataset ---
-    print(f"\n[3/5] Creating dummy CPT dataset ({STEPS} examples)")
     arabic_texts = [
         "بسم الله الرحمن الرحيم. الحمد لله رب العالمين.",
         "قال النبي صلى الله عليه وسلم: إنما الأعمال بالنيات.",
@@ -66,18 +57,17 @@ def main():
 
     dataset = dataset.map(tokenize_fn, batched=True, remove_columns=["text"])
     dataset.set_format(type="torch", columns=["input_ids", "attention_mask"])
-    print(f"  Dataset: {len(dataset)} examples, seq_len={MAX_SEQ_LEN}")
 
     # --- Run short CPT training ---
     with tempfile.TemporaryDirectory() as tmpdir:
-        print(f"\n[4/5] Running CPT ({STEPS} steps) -> {tmpdir}")
         training_args = TrainingArguments(
             output_dir=tmpdir,
             max_steps=STEPS,
-            per_device_train_batch_size=2,
-            gradient_accumulation_steps=1,
+            per_device_train_batch_size=1,
+            gradient_accumulation_steps=2,
             learning_rate=2e-4,
-            bf16=True,
+            fp16=True,
+            gradient_checkpointing=True,
             logging_steps=1,
             save_steps=9999,
             report_to="none",
@@ -97,11 +87,9 @@ def main():
         )
 
         result = trainer.train()
-        loss = result.metrics.get("train_loss", "N/A")
-        print(f"  CPT done. Final loss: {loss}")
+        result.metrics.get("train_loss", "N/A")
 
     # --- Quick inference test ---
-    print(f"\n[5/5] Inference test")
     prompt = "بسم الله"
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
     with torch.no_grad():
@@ -110,17 +98,11 @@ def main():
             max_new_tokens=32,
             do_sample=False,
         )
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    print(f"  Input:  {prompt}")
-    print(f"  Output: {response[:200]}")
+    tokenizer.decode(outputs[0], skip_special_tokens=True)
 
     # --- VRAM summary ---
-    peak_mb = torch.cuda.max_memory_allocated() / 1e6
-    current_mb = torch.cuda.memory_allocated() / 1e6
-    print(f"\n--- VRAM Summary ---")
-    print(f"  Peak allocated: {peak_mb:.0f} MB")
-    print(f"  Current: {current_mb:.0f} MB")
-    print(f"\n✅ Smoke test PASSED — Baligh-1.7B pipeline works on RTX 5000.")
+    torch.cuda.max_memory_allocated() / 1e6
+    torch.cuda.memory_allocated() / 1e6
 
 
 if __name__ == "__main__":

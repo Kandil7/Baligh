@@ -182,7 +182,7 @@ class SFTConfig:
         default_factory=lambda: {
             "cidar": 0.40,
             "evol_instruct_arabic": 0.35,
-            "gazelle": 0.15,
+            "islamweb_fatwa": 0.15,
             "summarization": 0.10,
         }
     )

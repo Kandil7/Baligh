@@ -12,6 +12,7 @@ Design (v0.2 rewrite):
   pipeline entirely.
 """
 
+from pathlib import Path
 from typing import Any
 
 from transformers import DataCollatorForSeq2Seq, Trainer, TrainingArguments
@@ -49,7 +50,9 @@ class SFTTrainer:
         if base_model_path:
             logger.info(f"SFT will continue from: {base_model_path}")
             object.__setattr__(self.model_config, "model_name", base_model_path)
-        self.output_dir = output_dir or self.base_config.output_dir / "sft"
+        self.output_dir = (
+            Path(output_dir) if output_dir is not None else self.base_config.output_dir / "sft"
+        )
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         set_seed(self.base_config.seed)
@@ -104,7 +107,7 @@ class SFTTrainer:
         max_steps = self.config.max_steps
         configured_epochs = self.config.num_train_epochs
         num_train_epochs: float | None = (
-            None
+            0.0
             if (max_steps is not None and max_steps > 0)
             else (configured_epochs if configured_epochs is not None else 1.0)
         )

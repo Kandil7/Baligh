@@ -73,5 +73,5 @@
 
 | Parameter | Value |
 |-----------|-------|
-| Precision | bf16 |
+| Precision | fp16 (bf16 requires sm_80+; the RTX 5000 is sm_75) |
 | Gradient Checkpointing | True |

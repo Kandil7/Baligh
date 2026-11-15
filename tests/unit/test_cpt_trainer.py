@@ -51,7 +51,7 @@ class TestCPTTrainerInit:
             output_dir=tmp_path / "cpt",
         )
         # num_train_epochs must be None when max_steps drives training.
-        assert t.training_args.num_train_epochs is None
+        assert t.training_args.num_train_epochs == 0
 
     def test_fp16_flag_set(self, trainer_env, tmp_path):
         from baligh.config import CPTConfig

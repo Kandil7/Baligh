@@ -18,4 +18,4 @@ Optimized SFT (10,000 steps)
 - Response-only loss (mask user tokens)
 - No packing (preserve conversation structure)
 - load_best_model_at_end enabled
-- Higher Islamic QA weight in stage 2
+- Higher Islamic-source weight in stage 2 (islamweb_fatwa 15% -> 20%)

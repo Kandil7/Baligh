@@ -9,7 +9,7 @@ This document describes the data flow through the Baligh-1.7B v0 training pipeli
 ### Source Datasets
 - CPT: ArabicWeb24, ArabicText-Large, The Arabic Pile, OSCAR, mC4
 - Islamic: hadith_datasets, quran_qa, quran_md
-- SFT: CIDAR, evol-instruct-arabic, Gazelle, Summarization
+- SFT: CIDAR, evol-instruct-arabic, islamweb_fatwa (local JSONL), Summarization
 - Eval: MMLU-Arabic, CIDAR eval, mr-tydi Arabic
 
 ### Loading Strategy
@@ -26,7 +26,9 @@ This document describes the data flow through the Baligh-1.7B v0 training pipeli
 4. Arabic normalization (alef variants, teh marbuta, ZWNJ)
 5. Repeated punctuation fixing
 6. Whitespace normalization
-7. Language filtering (Arabic > 30%)
+7. Language filtering (Arabic > 30%) — CPT only; the SFT path runs the
+   normalization steps without this gate, because `sanitize()` blanks (rather
+   than drops) non-Arabic fields and the SFT mix is mixed-language by design
 8. Quality filtering (length, repetition, punctuation ratio)
 9. Near-deduplication (MinHash LSH, optional)
 
@@ -46,9 +48,10 @@ This document describes the data flow through the Baligh-1.7B v0 training pipeli
 ### SFT Mixing Ratios
 - CIDAR: 40%
 - evol-instruct-arabic: 35%
-- Gazelle: 10%
+- islamweb_fatwa: 15%
 - Summarization: 10%
-- Islamic QA: 5%
+
+Stage 2 shifts to CIDAR 35% / evol 30% / islamweb_fatwa 20% / summarization 15%.
 
 ### Interleaving Strategy
 - interleave_datasets with probabilities

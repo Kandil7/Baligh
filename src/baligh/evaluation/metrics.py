@@ -115,8 +115,9 @@ def compute_bleu(predictions: list[str], references: list[str]) -> float:
     from sacrebleu import corpus_bleu
 
     refs = [[r] for r in references]
-    bleu = corpus_bleu(list(predictions), refs, tokenize="ar")
-    return bleu.score
+    bleu = corpus_bleu(list(predictions), refs, tokenize="intl")
+    # sacrebleu's score arrives as Any; cast so the declared float is honest.
+    return float(bleu.score)
 
 
 def compute_bert_score(

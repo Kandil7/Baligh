@@ -30,7 +30,7 @@ Adapt Qwen3-1.7B Base to Arabic/Islamic domain
 | Weight decay | 0.01 |
 | Optimizer | adamw_torch_fused |
 | Max grad norm | 1.0 |
-| Mixed precision | bf16 |
+| Mixed precision | fp16 (bf16 needs sm_80+; `utils/hardware.py` falls back on Turing) |
 | Gradient checkpointing | True |
 
 ### Stages
@@ -71,7 +71,7 @@ Convert base-adapted model to instruction-following assistant
 | Max steps | 10,000 |
 | LR scheduler | Cosine |
 | Weight decay | 0.01 |
-| Mixed precision | bf16 |
+| Mixed precision | fp16 (bf16 needs sm_80+; `utils/hardware.py` falls back on Turing) |
 
 ### Stages
 
@@ -80,7 +80,7 @@ Convert base-adapted model to instruction-following assistant
 - Config: configs/sft/sft-stage1.yaml
 
 #### Stage 2: Optimized SFT (10,000 steps)
-- Higher Islamic QA weight
+- Higher Islamic-source weight (islamweb_fatwa 15% -> 20%)
 - Lower LR
 - Config: configs/sft/sft-stage2.yaml
 

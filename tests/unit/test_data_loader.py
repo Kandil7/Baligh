@@ -16,8 +16,19 @@ class TestRegistryUnification:
             assert list_registered_names().count(name) == 1
 
     def test_sft_names_resolvable(self):
-        for name in ("cidar", "evol_instruct_arabic", "gazelle", "summarization"):
+        for name in ("cidar", "evol_instruct_arabic", "islamweb_fatwa", "summarization"):
             assert name in DATASETS
+
+    def test_removed_gazelle_is_gone(self):
+        """Gazelle/arabic-writing 404s and the real repo is a 200-row
+        benchmark; at 0.15 weight it would cap the whole mix at ~1,300 rows."""
+        assert "gazelle" not in DATASETS
+
+    def test_islamweb_is_a_local_split_mapped_source(self):
+        cfg = DATASETS["islamweb_fatwa"]
+        assert isinstance(cfg["path"], dict)
+        assert set(cfg["path"]) == {"train", "eval"}
+        assert cfg["type"] == "sft"
 
     def test_unknown_name_raises_with_guidance(self):
         with pytest.raises(ValueError, match="Unknown dataset"):
@@ -43,6 +54,51 @@ class TestLoadDatasetByName:
         kwargs = mock_load.call_args[1]
         assert kwargs["split"] == "test"
         assert kwargs["streaming"] is True
+
+
+class TestLocalSources:
+    def test_mapping_path_is_always_local(self):
+        from baligh.data.loader import _is_local_source
+
+        assert _is_local_source({"train": "a.jsonl", "eval": "b.jsonl"}) is True
+
+    def test_hub_id_with_json_suffix_is_not_local(self):
+        """A repo id must never be treated as a file even if it ends in
+        a JSON-like suffix."""
+        from baligh.data.loader import _is_local_source
+
+        assert _is_local_source("org/some_dataset") is False
+        assert _is_local_source("org/dataset.json") is False
+
+    def test_existing_jsonl_path_is_local(self, tmp_path):
+        from baligh.data.loader import _is_local_source
+
+        f = tmp_path / "rows.jsonl"
+        f.write_text('{"instruction": "i", "input": "", "output": "o"}\n', encoding="utf-8")
+        assert _is_local_source(str(f)) is True
+        assert _is_local_source(str(tmp_path / "missing.jsonl")) is False
+
+    @patch("baligh.data.loader.load_dataset")
+    def test_local_mapping_selects_the_requested_split(self, mock_load):
+        from baligh.data.loader import _load_local
+
+        mock_load.return_value = MagicMock()
+        _load_local(
+            {"train": "tr.jsonl", "eval": "ev.jsonl"},
+            split="eval",
+            streaming=False,
+        )
+        kwargs = mock_load.call_args[1]
+        assert kwargs["data_files"] == {"eval": "ev.jsonl"}
+        assert kwargs["split"] == "eval"
+
+    @patch("baligh.data.loader.load_dataset")
+    def test_local_mapping_rejects_unknown_split(self, mock_load):
+        from baligh.data.loader import _load_local
+
+        with pytest.raises(ValueError, match="no split 'test'"):
+            _load_local({"train": "tr.jsonl", "eval": "ev.jsonl"}, split="test", streaming=False)
+        mock_load.assert_not_called()
 
 
 class TestStandardizers:
@@ -80,7 +136,7 @@ class TestStandardizers:
         ds.column_names = ["context", "question", "answer"]
         mapped_rows = []
 
-        def fake_map(fn, desc=None):
+        def fake_map(fn, remove_columns=None, desc=None):
             out = [fn(r) for r in rows]
             mapped_rows.extend(out)
             result = MagicMock()
@@ -90,3 +146,41 @@ class TestStandardizers:
         ds.map = fake_map
         standardize_cpt_dataset(ds, "quran_qa")
         assert mapped_rows[0]["text"] == "آية"
+
+    def test_standardize_sharegpt_takes_first_human_and_last_gpt(self):
+        """evol-instruct-arabic ships ShareGPT turns, not flat columns; the
+        intermediate turns must be dropped, not concatenated into one answer."""
+        from baligh.data.datasets import standardize_sft_dataset
+
+        rows = [
+            {
+                "conversations": [
+                    {"from": "human", "value": "ما حكم الصلاة؟"},
+                    {"from": "gpt", "value": "جواب أول"},
+                    {"from": "human", "value": "وسؤال ثانٍ"},
+                    {"from": "gpt", "value": "الجواب النهائي"},
+                ]
+            }
+        ]
+
+        ds = MagicMock()
+        ds.column_names = ["conversations"]
+        mapped = []
+
+        def fake_map(fn, remove_columns=None, desc=None):
+            out = [fn(r) for r in rows]
+            mapped.extend(out)
+            result = MagicMock()
+            result.column_names = list(out[0].keys())
+            return result
+
+        ds.map = fake_map
+        standardize_sft_dataset(ds, "evol_instruct_arabic")
+        row = mapped[0]
+        assert row["instruction"] == "ما حكم الصلاة؟"
+        assert row["output"] == "الجواب النهائي"
+        assert set(row) == {"instruction", "input", "output"}
+
+    def test_sharegpt_sources_declare_the_format_flag(self):
+        assert DATASETS["evol_instruct_arabic"].get("format") == "sharegpt"
+        assert "format" not in DATASETS["cidar"]

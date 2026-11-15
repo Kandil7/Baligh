@@ -48,8 +48,7 @@ class ChatEvaluator:
             device_map="auto",
         )
         self.model.eval()
-        free_gb = __import__("torch").cuda.mem_get_info()[0] / 1e9
-        print(f"Loaded {model_name} | free VRAM after load: {free_gb:.1f} GB")
+        __import__("torch").cuda.mem_get_info()[0] / 1e9
 
     def generate(self, prompt: str, **_: object) -> str:
         import torch
@@ -105,8 +104,6 @@ def main() -> None:
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"\nReport saved to {out}")
-    print(json.dumps({k: v for k, v in result["categories"].items()}, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

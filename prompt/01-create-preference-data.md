@@ -15,7 +15,7 @@ Use the SFT data from `data/train_ready/sft/` as the source of prompts/instructi
 # Steps to Execute
 
 1. Read `src/baligh/data/preference.py` to understand the expected format.
-2. Read `src/baligh/data/datasets.py` to find SFT dataset sources (CIDAR, evol-instruct-arabic, gazelle, summarization).
+2. Read `src/baligh/data/datasets.py` to find SFT dataset sources (CIDAR, evol-instruct-arabic, islamweb_fatwa, summarization).
 3. Write a Python script `src/scripts/create_preference_data.py` that:
    a. Loads the SFT training split from `data/train_ready/sft/`.
    b. Samples 2,000–5,000 instructions (diverse across domains).

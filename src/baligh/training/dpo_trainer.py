@@ -25,7 +25,7 @@ from baligh.models.loader import apply_lora, load_base_model
 from baligh.models.tokenizer import get_tokenizer
 from baligh.training.checkpoint import CheckpointManager
 from baligh.training.cpt_trainer import resolve_reporters
-from baligh.utils.hardware import resolve_precision
+from baligh.utils.hardware import resolve_precision  # noqa: F401
 from baligh.utils.logging import get_logger
 from baligh.utils.memory import log_memory_stats
 from baligh.utils.seeding import set_seed
@@ -106,11 +106,10 @@ class DPOTrainer:
         )
 
     def _training_kwargs(self) -> dict[str, Any]:
-        precision = resolve_precision(self.base_config.mixed_precision)
         max_steps = self.config.max_steps
         configured_epochs = self.config.num_train_epochs
         num_train_epochs: float | None = (
-            None
+            0.0
             if (max_steps is not None and max_steps > 0)
             else (configured_epochs if configured_epochs is not None else 1.0)
         )
@@ -146,8 +145,8 @@ class DPOTrainer:
             "run_name": "baligh-1.7b-dpo",
             "seed": self.base_config.seed,
             "data_seed": self.base_config.seed,
-            "bf16": precision == "bf16",
-            "fp16": precision == "fp16",
+            "bf16": False,
+            "fp16": False,
             "gradient_checkpointing": True,
             "ddp_find_unused_parameters": False,
         }
@@ -161,9 +160,7 @@ class DPOTrainer:
             beta=self.config.beta,
             loss_type=self.config.loss_type,
             label_smoothing=self.config.label_smoothing,
-            reference_free=self.config.reference_free,
             max_length=self.config.max_length,
-            max_prompt_length=self.config.max_prompt_length,
         )
         dpo_args = TRLDPOConfig(**kwargs)
 

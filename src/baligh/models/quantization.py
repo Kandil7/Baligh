@@ -66,9 +66,7 @@ def quantize_gguf(
     if convert_script:
         script = Path(convert_script)
     else:
-        found = shutil.which("convert_hf_to_gguf.py") or shutil.which(
-            "convert_hf_to_gguf"
-        )
+        found = shutil.which("convert_hf_to_gguf.py") or shutil.which("convert_hf_to_gguf")
         script = Path(found) if found else None
 
     if script is None or not script.exists():

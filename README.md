@@ -21,6 +21,9 @@
   <a href="https://pytorch.org/">
     <img src="https://img.shields.io/badge/PyTorch-2.6+-ee4c2c.svg" alt="PyTorch">
   </a>
+  <a href="docs/CODEBASE-INTELLIGENCE.md">
+    <img src="https://img.shields.io/badge/🧠_Code_Graph-docs-blue" alt="Code Intelligence">
+  </a>
 </p>
 
 <p align="center">
@@ -66,9 +69,9 @@ Baligh-1.7B v0 is a lightweight Arabic language model (1.7B total parameters, 1.
 
 | Parameter | Value |
 |-----------|-------|
-| Datasets | CIDAR (40%), evol-instruct-arabic (35%), Gazelle (15%), Summarization (10%) |
+| Datasets | CIDAR (40%), evol-instruct-arabic (35%), islamweb_fatwa (15%), Summarization (10%) |
 | Loss | Completion-only (prompt tokens masked with -100) |
-| Examples | ~100K-500K instruction examples |
+| Examples | ~23K mixed instruction examples (stage 1), ~18K (stage 2) |
 | Steps | 10,000 |
 | Learning Rate | 1e-4 (cosine scheduler) |
 | Config | `configs/sft/sft-stage2.yaml` |
@@ -167,10 +170,16 @@ make eval
 # Run specific benchmarks
 python -m src.scripts.run_eval --model-path training/sft/final \
   --benchmarks mmlu cidar --max-samples 200
+
+# Sunni-core benchmark: Quran/hadith citation honesty, madhhab-aware fiqh,
+# refusal calibration. Reads data/benchmarks/sunni_core_v0.jsonl by default
+# (--sunni-path to override) and queues unscorable items for human review.
+python -m src.scripts.run_eval --model-path training/sft/final \
+  --benchmarks sunni --max-samples 100
 ```
 
 Metrics are Arabic-aware: ROUGE uses an Arabic-inclusive tokenizer,
-BLEU uses sacrebleu's `tokenize="ar"`, exact match normalizes alef/yaa
+BLEU uses sacrebleu's `tokenize="intl"`, exact match normalizes alef/yaa
 variants, diacritics, punctuation and digit forms.
 
 ### Inference

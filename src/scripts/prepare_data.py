@@ -5,7 +5,7 @@ Downloads, standardizes, cleans, mixes, and formats Hugging Face datasets.
 
 Pipeline:
 - CPT: ArabicWeb24 (70%) + ArabicText-Large (20%) + The Arabic Pile (10%) [+ Islamic cycle]
-- SFT: CIDAR (40%) + evol-instruct-arabic (35%) + Gazelle (15%) + Summarization (10%)
+- SFT: CIDAR (40%) + evol-instruct-arabic (35%) + islamweb_fatwa (15%) + Summarization (10%)
   — every source is projected onto the canonical {instruction, input, output}
   schema BEFORE mixing, so heterogeneous originals cannot break the merge.
 
@@ -73,6 +73,14 @@ class DataPreparator:
         set_seed(config.seed)
         # Initialize components
         self.cleaning_pipeline = get_cleaning_pipeline() if config.clean else None
+        # SFT sources are mixed-language by design (capped multilingual
+        # fatwas, English evol turns), and sanitize() would BLANK every field
+        # failing the Arabic gate instead of dropping the row. A blanked
+        # output is a row that trains on an empty target, so the SFT path
+        # normalizes without the gate.
+        self.sft_cleaning_pipeline = (
+            get_cleaning_pipeline(language_filter=None) if config.clean else None
+        )
 
     def _materialize(self, dataset, name: str):
         """Materialize a bounded sample when dedup requires map-style data."""
@@ -133,13 +141,13 @@ class DataPreparator:
         # 7. Format for CPT (tokenize, pack)
         logger.info("Formatting CPT data...")
         formatter = get_cpt_formatter()
-        formatted = mixed_cpt.map(
-            formatter,
-            batched=True,
-            num_proc=None if self.config.streaming else self.config.num_proc,
-            remove_columns=mixed_cpt.column_names,
-            desc="Formatting CPT",
-        )
+        from datasets import IterableDataset
+
+        fmt_kwargs: dict = {"batched": True, "remove_columns": mixed_cpt.column_names}
+        if not isinstance(mixed_cpt, IterableDataset):
+            fmt_kwargs["num_proc"] = self.config.num_proc
+            fmt_kwargs["desc"] = "Formatting CPT"
+        formatted = mixed_cpt.map(formatter, **fmt_kwargs)
         # 8. Split train/eval
         return self._split_dataset(formatted, eval_ratio=0.01)
 
@@ -206,31 +214,40 @@ class DataPreparator:
         return DatasetDict(eval_datasets)
 
     def _clean_dataset(self, dataset: Dataset, text_column: str = "text") -> Dataset:
-        """Apply cleaning pipeline to dataset."""
+        """Apply cleaning pipeline to dataset.
+
+        The cleaning pipeline DROPS rows that fail cleaning, so we cannot
+        return a shorter list from a `.map()` (HF requires matching
+        lengths). Instead: filter first, then map text to its cleaned form.
+        """
         if self.cleaning_pipeline is None:
             return dataset
 
         pipeline = self.cleaning_pipeline
 
-        def clean_batch(batch):
-            texts = batch[text_column]
-            return {text_column: pipeline.clean_batch(texts)}
-
         from datasets import IterableDataset
 
-        kwargs: dict = {"batched": True}
-        if isinstance(dataset, IterableDataset):
-            # IterableDataset.map() supports neither num_proc nor desc.
-            pass
+        is_iter = isinstance(dataset, IterableDataset)
+
+        def keep(example):
+            return pipeline.clean(example.get(text_column)) is not None
+
+        if is_iter:
+            dataset = dataset.filter(keep)
         else:
+            dataset = dataset.filter(keep, num_proc=self.config.num_proc)
+
+        def clean_one(example):
+            return {text_column: pipeline.clean(example[text_column])}
+
+        kwargs: dict = {"batched": False}
+        if not is_iter:
             kwargs["num_proc"] = self.config.num_proc
             kwargs["desc"] = f"Cleaning {text_column}"
-        # The cleaning pipeline is row-dropping (it removes empty/invalid
-        # texts), so any sibling column would go out of sync with `text`.
         cols = dataset.column_names
         if cols:
             kwargs["remove_columns"] = [c for c in cols if c != text_column]
-        return dataset.map(clean_batch, **kwargs)
+        return dataset.map(clean_one, **kwargs)
 
     def _clean_sft_dataset(self, dataset: Dataset) -> Dataset:
         """Apply cleaning to the canonical SFT columns, preserving rows.
@@ -238,10 +255,10 @@ class DataPreparator:
         Row-preserving sanitize (not row-dropping clean) is essential here:
         dropping one column's entry but not its siblings corrupts alignment.
         """
-        if self.cleaning_pipeline is None:
+        if self.sft_cleaning_pipeline is None:
             return dataset
 
-        pipeline = self.cleaning_pipeline
+        pipeline = self.sft_cleaning_pipeline
 
         def sanitize_batch(batch):
             for col in ("instruction", "input", "output"):
@@ -258,12 +275,16 @@ class DataPreparator:
 
     def _split_dataset(self, dataset, eval_ratio: float = 0.01) -> DatasetDict:
         """Split dataset into train/eval."""
-        from datasets import IterableDataset
+        from datasets import Dataset, IterableDataset
 
         if isinstance(dataset, IterableDataset):
-            # Streaming: take a fixed eval slice, skip it in train.
-            eval_size = 1000
-            return DatasetDict({"train": dataset.skip(eval_size), "eval": dataset.take(eval_size)})
+            # Materialize the (possibly bounded) stream so the result can be
+            # persisted with save_to_disk and consumed by load_from_disk.
+            # Only safe for bounded streams (e.g. --max-samples); unbounded
+            # streaming corpora must be capped before reaching this point.
+            logger.info("Materializing streaming dataset for split/save...")
+            dataset = Dataset.from_list(list(dataset))
+
         split = dataset.train_test_split(test_size=eval_ratio, seed=self.config.seed, shuffle=True)
         return DatasetDict({"train": split["train"], "eval": split["test"]})
 

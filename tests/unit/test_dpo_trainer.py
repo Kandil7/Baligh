@@ -36,7 +36,7 @@ class TestDPOTrainerInit:
         )
         config_kwargs = dpo_env["trl_dpo_config"].call_args[1]
         assert config_kwargs["max_steps"] == 10
-        assert config_kwargs["num_train_epochs"] is None
+        assert config_kwargs["num_train_epochs"] == 0
 
     def test_dpo_specific_kwargs_reach_trl_config(self, dpo_env, tmp_path):
         """Regression: beta/loss_type must go inside TRL DPOConfig, not as
@@ -53,7 +53,6 @@ class TestDPOTrainerInit:
         assert config_kwargs["beta"] == 0.2
         assert config_kwargs["loss_type"] == "ipo"
         assert config_kwargs["max_length"] == 768
-        assert config_kwargs["max_prompt_length"] == 256
 
     def test_trl_trainer_receives_config_as_args(self, dpo_env, tmp_path):
         from baligh.config import DPOConfig

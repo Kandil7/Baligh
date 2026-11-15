@@ -171,7 +171,7 @@ class PromptFormatter:
 
 
 def get_cpt_formatter(
-    tokenizer_name: str | None = None, max_seq_length: int = 2048, packing: bool = True
+    tokenizer_name: str | None = None, max_seq_length: int = 1024, packing: bool = True
 ) -> PromptFormatter:
     return PromptFormatter(tokenizer_name, max_seq_length, packing=packing)
 

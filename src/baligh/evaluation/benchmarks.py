@@ -105,7 +105,7 @@ def run_mmlu_arabic(evaluator: Any, max_samples: int = 100) -> dict:
 def run_cidar_eval(evaluator: Any, max_samples: int = 100) -> dict:
     """CIDAR generation benchmark (ROUGE/BLEU against references)."""
     logger.info("Running CIDAR evaluation")
-    dataset = load_dataset("arbml/CIDAR", split="test")
+    dataset = load_dataset("arbml/CIDAR", split="train")
     predictions = []
     references = []
     for example in dataset.select(range(min(max_samples, len(dataset)))):

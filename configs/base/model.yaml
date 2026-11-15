@@ -1,4 +1,4 @@
-﻿model:
+model:
   name: unsloth/Qwen3-1.7B-Base
 
   trust_remote_code: false

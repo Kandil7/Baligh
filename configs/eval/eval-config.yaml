@@ -1,4 +1,4 @@
-﻿eval:
+eval:
   eval_datasets:
     - mmlu_arabic
     - cidar_eval

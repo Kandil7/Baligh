@@ -64,18 +64,21 @@
 - Columns: instruction, input, output
 - Priority: 2 (35%)
 
-### Gazelle
-- HF: Gazelle/arabic-writing
-- Style: Writing assistance
-- License: Open
-- Columns: instruction, input, output
-- Priority: 3 (10%)
+### islamweb_fatwa
+- Source: local `D:\AI\datasets\baligh\islamweb_fatwa` (built by `src/scripts/convert_islamweb.py` from `D:\AI\Datasets\Custom\islamweb1`)
+- Size: 3,917 rows (3,525 train / 392 eval)
+- Style: fatwa question -> ruling; Arabic kept in full, other languages capped at 3,000 seeded-sampled rows
+- Columns: instruction, input, output (+ lang/fatwa_id/url in the raw artifact)
+- Split: grouped by `fatwa_id`, so one ruling never straddles train and eval
+- License: See source (Islamweb fatwa pages)
+- Priority: 3 (15% stage 1 / 20% stage 2)
 
 ### Summarization
-- HF: BounharAbdelaziz/arabic-msa-summarization
+- HF: BounharAbdelaziz/Arabic-Synthetic-Summarization-Dataset
+- Size: 4,000 train / 500 test
 - Style: Arabic summarization
 - License: Open
-- Columns: text, summary
+- Columns: text, summary (mapped to instruction/output by the standardizer)
 - Priority: 4 (10%)
 
 ## Evaluation Datasets

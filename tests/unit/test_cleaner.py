@@ -220,6 +220,29 @@ class TestCleaningPipeline:
         result = pipeline.clean(text)
         assert result is None
 
+    def test_sanitize_blanks_non_arabic_under_default_gate(self):
+        """sanitize() blanks instead of dropping, which is why the SFT path
+        must opt out of the gate — a blanked output trains on an empty target."""
+        pipeline = CleaningPipeline(language_filter="arabic")
+        assert pipeline.sanitize("This is an English fatwa answer entirely in Latin script") == ""
+
+    def test_sanitize_without_gate_keeps_latin(self):
+        """Regression: the SFT cleaning path (language_filter=None) must keep
+        non-Arabic rows intact. With the gate on it destroyed 2,668 of 3,525
+        islamweb rows on 2026-11-14."""
+        pipeline = get_cleaning_pipeline(language_filter=None)
+        latin = "This is an English fatwa answer entirely in Latin script"
+        assert pipeline.sanitize(latin) == latin
+        # Arabic still passes through normalization (alef maqsura -> ya), it
+        # must simply never be blanked.
+        arabic = "هذا نص عربي طويل يحتوي على الكثير من الكلمات العربية"
+        assert pipeline.sanitize(arabic) == "هذا نص عربي طويل يحتوي علي الكثير من الكلمات العربية"
+
+    def test_sanitize_keeps_mixed_language_instruction(self):
+        pipeline = get_cleaning_pipeline(language_filter=None)
+        text = 'اكتب JSON بالصيغة التالية: {"key": "value"}'
+        assert pipeline.sanitize(text) == text
+
 
 class TestGetCleaningPipeline:
     """Tests for factory function."""

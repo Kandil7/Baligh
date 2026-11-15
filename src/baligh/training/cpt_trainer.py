@@ -8,9 +8,10 @@ Stack: transformers ``Trainer`` + PEFT QLoRA. Unsloth is NOT used on this
 code path (it remains available in the Colab notebooks).
 """
 
+from pathlib import Path
 from typing import Any
 
-from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments
+from transformers import Trainer, TrainingArguments
 
 from baligh.config import get_config, get_cpt_config, get_model_config
 from baligh.models.loader import apply_lora, load_base_model
@@ -59,7 +60,9 @@ class CPTTrainer:
         self.config = config or get_cpt_config()
         self.model_config = get_model_config()
         self.base_config = get_config()
-        self.output_dir = output_dir or self.base_config.output_dir / "cpt"
+        self.output_dir = (
+            Path(output_dir) if output_dir is not None else self.base_config.output_dir / "cpt"
+        )
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         set_seed(self.base_config.seed)
@@ -117,7 +120,7 @@ class CPTTrainer:
         max_steps = self.config.max_steps
         configured_epochs = self.config.num_train_epochs
         num_train_epochs: float | None = (
-            None
+            0.0
             if (max_steps is not None and max_steps > 0)
             else (configured_epochs if configured_epochs is not None else 1.0)
         )
@@ -142,7 +145,7 @@ class CPTTrainer:
             save_total_limit=self.config.save_total_limit,
             eval_steps=self.config.eval_steps,
             eval_strategy=self.config.eval_strategy,
-            load_best_model_at_end=True,
+            load_best_model_at_end=self.config.eval_strategy != "no",
             metric_for_best_model="eval_loss",
             greater_is_better=False,
             dataloader_num_workers=self.config.dataloader_num_workers,
@@ -162,14 +165,36 @@ class CPTTrainer:
         )
 
     def _create_trainer(self) -> Trainer:
-        data_collator = DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=False)
+        import torch
+
+        # Custom collator is a closure; force single-process dataloading so
+        # it does not need to be pickled across worker processes.
+        self.training_args.dataloader_num_workers = 0
+
+        def collate(features):
+            input_ids = [f["input_ids"] for f in features]
+            attention_mask = [f["attention_mask"] for f in features]
+            labels = [f["labels"] for f in features]
+            batch = self.tokenizer.pad(
+                {"input_ids": input_ids, "attention_mask": attention_mask},
+                padding=True,
+                return_tensors="pt",
+            )
+            # Pad labels to the same length with -100 (ignore index).
+            max_len = batch["input_ids"].shape[1]
+            padded_labels = []
+            for lab in labels:
+                pad_len = max_len - len(lab)
+                padded_labels.append(lab + [-100] * pad_len)
+            batch["labels"] = torch.tensor(padded_labels, dtype=torch.long)
+            return batch
 
         trainer: Trainer = Trainer(
             model=self.model,
             args=self.training_args,
             train_dataset=self.train_dataset,
             eval_dataset=self.eval_dataset,
-            data_collator=data_collator,
+            data_collator=collate,
             processing_class=self.tokenizer,
             callbacks=[LoggingCallback(), MemoryCallback(log_every_n_steps=100)],
         )

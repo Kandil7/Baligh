@@ -44,7 +44,7 @@ base_model: unsloth/Qwen3-1.7B-Base
 - **Sequence Length**: 2048
 
 ### Stage 2: Supervised Fine-Tuning (SFT)
-- **Datasets**: CIDAR (40%), evol-instruct-arabic (35%), Gazelle (15%), Summarization (10%)
+- **Datasets**: {sft_mix}
 - **Method**: QLoRA 4-bit NF4 (r=16, alpha=16), completion-only loss masking
 - **Learning Rate**: 1e-4 (cosine)
 
@@ -99,7 +99,15 @@ def main():
 
     setup_logging()
 
+    # Derive the mix from the live config so the card cannot drift from the
+    # ratios actually used for training.
+    from baligh.config import get_sft_config
+
+    mix = get_sft_config().dataset_mix
+    sft_mix = ", ".join(f"{name} ({weight:.0%})" for name, weight in mix.items())
+
     card = MODEL_CARD_TEMPLATE.format(
+        sft_mix=sft_mix,
         mmlu_score=args.mmlu_score,
         cidar_rouge=args.cidar_rouge,
         islamic_rouge=args.islamic_rouge,

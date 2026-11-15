@@ -59,7 +59,7 @@ def main():
 
     config = None
     if args.config:
-        with open(args.config) as f:
+        with open(args.config, encoding="utf-8-sig") as f:
             config = yaml.safe_load(f)
 
     resume_from_checkpoint = None

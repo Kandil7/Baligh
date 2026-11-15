@@ -1,4 +1,4 @@
-﻿cpt:
+cpt:
   # Stage 2: Full CPT run 
   dataset_mix:
     arabicweb24: 0.7
@@ -8,7 +8,7 @@
   max_steps: 50000
   per_device_train_batch_size: 2
   gradient_accumulation_steps: 4
-  learning_rate: 2e-4
+  learning_rate: 0.0002
   weight_decay: 0.01
   warmup_steps: 1000
   lr_scheduler_type: "cosine"

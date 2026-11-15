@@ -34,7 +34,7 @@ class TestSFTTrainerInit:
         )
         assert t.training_args.eval_strategy == "steps"
         assert t.training_args.max_steps == 10
-        assert t.training_args.num_train_epochs is None
+        assert t.training_args.num_train_epochs == 0
 
     def test_base_model_path_is_load_bearing(self, sft_env, tmp_path):
         """Regression: --base-model used to be silently ignored, which
