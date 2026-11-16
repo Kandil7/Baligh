@@ -17,9 +17,9 @@ sft:
   optim: "adamw_torch_fused"
   logging_steps: 5
   save_steps: 250
-  eval_steps: 250
-  eval_strategy: "steps"
-  load_best_model_at_end: true
+  eval_steps: 9999
+  eval_strategy: "no"
+  load_best_model_at_end: false
   metric_for_best_model: "eval_loss"
   greater_is_better: false
   dataloader_num_workers: 4

@@ -14,8 +14,9 @@ Adapt Qwen3-1.7B Base to Arabic/Islamic domain
 - Method: QLoRA 4-bit (NF4, double quant)
 - LoRA: r=16, alpha=16, dropout=0
 - Target modules: all attention + MLP
-- Sequence length: 2048 (extendable to 32K)
-- Packing: True (for efficiency)
+- Sequence length: 1024 (CPT, for VRAM); 2048 (SFT)
+- Packing: True (CPT, for efficiency); False (SFT, preserve conversation structure)
+- Collator: custom (fast tokenizer cannot pad `labels`)
 
 ### Hyperparameters
 | Parameter | Value |

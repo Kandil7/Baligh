@@ -1,0 +1,5 @@
+W1115 14:29:50.546000 26368 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Repo card metadata block was not found. Setting CardData to empty.
+Formatting SFT:   0%|          | 0/2501 [00:00<?, ? examples/s]Formatting SFT:  40%|███▉      | 1000/2501 [00:02<00:03, 464.78 examples/s]Formatting SFT:  80%|███████▉  | 2000/2501 [00:04<00:01, 448.06 examples/s]Formatting SFT: 100%|██████████| 2501/2501 [00:05<00:00, 452.24 examples/s]Formatting SFT: 100%|██████████| 2501/2501 [00:05<00:00, 451.37 examples/s]
+Saving the dataset (0/1 shards):   0%|          | 0/2300 [00:00<?, ? examples/s]Saving the dataset (1/1 shards): 100%|██████████| 2300/2300 [00:00<00:00, 44085.20 examples/s]Saving the dataset (1/1 shards): 100%|██████████| 2300/2300 [00:00<00:00, 44085.20 examples/s]
+Saving the dataset (0/1 shards):   0%|          | 0/47 [00:00<?, ? examples/s]Saving the dataset (1/1 shards): 100%|██████████| 47/47 [00:00<00:00, 11748.05 examples/s]Saving the dataset (1/1 shards): 100%|██████████| 47/47 [00:00<00:00, 9398.89 examples/s] 

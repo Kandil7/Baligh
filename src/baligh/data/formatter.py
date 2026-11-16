@@ -178,7 +178,7 @@ def get_cpt_formatter(
 
 def get_sft_formatter(
     tokenizer_name: str | None = None,
-    max_seq_length: int = 2048,
+    max_seq_length: int = 1024,
     packing: bool = False,
     response_only_loss: bool = True,
 ) -> PromptFormatter:
