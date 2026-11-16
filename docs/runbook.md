@@ -102,6 +102,12 @@ python -m src.scripts.run_eval \
 **Note:** `--benchmarks mmlu` is currently blocked by an upstream MMLU-Arabic
 CSV schema mismatch (not our code).
 
+## Uploading to Hugging Face
+
+```bash
+ py -m src.scripts.push_to_hf --model-path release/baligh-1.7b-v0-instruct --repo-id Kandil7/Baligh-1.7B
+```
+
 ## 5. Checkpoint Management
 
 ```bash
